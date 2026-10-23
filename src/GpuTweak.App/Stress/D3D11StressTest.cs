@@ -28,7 +28,8 @@ public sealed class D3D11StressTest : IStressTest
     private const uint Groups = 4096;
     private const uint ThreadCount = ThreadsPerGroup * Groups;
     private const uint Seed = 0x9E3779B9;
-    private static readonly TimeSpan TargetDispatch = TimeSpan.FromMilliseconds(40);
+    // Short dispatches leave room for Windows to draw the desktop between them (long ones made the screen tear).
+    private static readonly TimeSpan TargetDispatch = TimeSpan.FromMilliseconds(10);
 
     private const string Shader = """
         cbuffer Params : register(b0) { uint Iterations; uint Seed; uint Reserved0; uint Reserved1; };
@@ -173,7 +174,7 @@ public sealed class D3D11StressTest : IStressTest
                 else
                 {
                     // Four small batches instead of one big one, so the preview updates about 10 times a second.
-                    const int passes = 2;
+                    const int passes = 8;
                     for (var batch = 0; batch < 4; batch++)
                     {
                         var start = watch.Elapsed;
@@ -299,7 +300,7 @@ public sealed class D3D11StressTest : IStressTest
         }
     }
 
-    /// <summary>Picks the loop length so one dispatch takes about 40 ms: heavy enough to load the GPU, short enough to stay far from the 2 s driver timeout.</summary>
+    /// <summary>Picks the loop length so one dispatch takes about 10 ms: heavy enough to load the GPU, short enough to stay far from the 2 s driver timeout and let the desktop draw.</summary>
     private void Calibrate()
     {
         for (var round = 0; round < 6; round++)
