@@ -1,14 +1,15 @@
-# GPU Tweak
+# Tweakstone
 
 RivaTuner/Afterburner yeteneklerinde ama çok daha sade, kartına zarar vermemek için tasarlanmış, tek exe ile çalışan portable bir GPU ayar aracı.
 
 ## Çalıştırma
 
-- `GpuTweak.exe`'yi istediğin klasöre koy ve çalıştır. Yönetici izni ister, çünkü NVIDIA'nın NVML API'si ayar yazmak için bunu şart koşuyor.
+- `Tweakstone.exe`'yi istediğin klasöre koy ve çalıştır. Yönetici izni ister, çünkü NVIDIA'nın NVML API'si ayar yazmak için bunu şart koşuyor.
 - Ayarlar, profiller ve logolar exe'nin yanındaki `GpuTweakData` klasöründe tutulur. Klasör yazılamazsa `%LOCALAPPDATA%\GpuTweak` kullanılır.
-- NVIDIA kartı olmayan bir bilgisayarda arayüzü denemek için: `GpuTweak.exe --demo`
+- NVIDIA kartı olmayan bir bilgisayarda arayüzü denemek için: `Tweakstone.exe --demo`
 - Overlay'i aç/kapat: **Ctrl + Shift + O**
-- **Windows ile başlat** (Profillerim kartı): Ekran kartı ayarları her yeniden başlatmada sıfırlanır. Bu seçenek açıkken program oturum açılınca küçültülmüş başlar ve "Stabil" + "Otomatik: açık" profili yeniden uygular. Yönetici izni gerektiği için Görev Zamanlayıcı'ya "GPU Tweak" adlı bir görev eklenir. Son açılan exe kullanılır.
+- **Simge alanı:** Pencerenin X tuşu programı kapatmaz, saatin yanındaki simge alanına gizler. Widget, kararlılık takibi ve uygulanan ayar çalışmaya devam eder. Simgenin üzerine gelince sıcaklık, güç ve aktif profil görünür. Tamamen kapatmak için simgeye sağ tıklayıp **Çıkış**.
+- **Windows ile başlat** (Profillerim kartı): Ekran kartı ayarları her yeniden başlatmada sıfırlanır. Bu seçenek açıkken program oturum açılınca saatin yanındaki simge alanında başlar ve "Stabil" + "Otomatik: açık" profili yeniden uygular. Yönetici izni gerektiği için Görev Zamanlayıcı'ya "Tweakstone" adlı bir görev eklenir. Son açılan exe kullanılır.
 
 ## Güvenlik
 

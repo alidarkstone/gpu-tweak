@@ -3,12 +3,14 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <!-- Only for the notification-area icon (NotifyIcon); WPF has none. -->
+    <UseWindowsForms>true</UseWindowsForms>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <AssemblyName>GpuTweak</AssemblyName>
+    <AssemblyName>Tweakstone</AssemblyName>
     <RootNamespace>GpuTweak.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Product>GPU Tweak</Product>
+    <Product>Tweakstone</Product>
 
     <!-- Portable single exe -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -19,6 +21,11 @@
     <DebugType>embedded</DebugType>
     <SatelliteResourceLanguages>tr;en</SatelliteResourceLanguages>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Keep WPF types unambiguous (Application, MessageBox, Button…). -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
   <ItemGroup>
     <Resource Include="Assets\app.ico" />
   </ItemGroup>

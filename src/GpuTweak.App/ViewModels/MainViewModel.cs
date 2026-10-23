@@ -134,7 +134,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public TuningLimits Limits { get; }
     public OverlayViewModel Overlay { get; }
     public string VendorName => Info.Vendor switch { GpuVendor.Nvidia => "NVIDIA", GpuVendor.Amd => "AMD", GpuVendor.Intel => "Intel", _ => "GPU" };
-    public string Subtitle => L.F("Sürücü {0} · {1:0} GB VRAM · GPU Tweak v{2}", Info.DriverVersion, Info.VramBytes / (1024 * 1024 * 1024.0), AppVersion);
+    public string Subtitle => L.F("Sürücü {0} · {1:0} GB VRAM · Tweakstone v{2}", Info.DriverVersion, Info.VramBytes / (1024 * 1024 * 1024.0), AppVersion);
     private static string AppVersion => typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "?";
     public bool IsCustomActive => !_active.IsStock;
     public string ActiveStateText => _active.IsStock ? L.T("Varsayılan ayarlar") : _activeProfileName is { } n ? L.F("Aktif: {0}", n) : L.T("Özel ayarlar aktif");
@@ -598,6 +598,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CoreClock = s.CoreClockMHz is { } c ? $"{c}" : "–";
         MemoryClock = s.MemoryClockMHz is { } m ? $"{m}" : "–";
         Power = s.PowerW is { } p ? $"{p:0}" : "–";
+        TrayText = TrayLine(s);
         PowerLevel = s.PowerW is { } p2 && s.PowerLimitW is > 0 ? Math.Clamp(p2 / s.PowerLimitW.Value, 0, 1) : 0;
         Vram = s.VramUsedBytes is { } u ? $"{u / (1024.0 * 1024 * 1024):0.0}" : "–";
         VramLevel = s.VramUsedBytes is { } u2 && s.VramTotalBytes is > 0 ? (double)u2 / s.VramTotalBytes.Value : 0;
@@ -794,6 +795,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ApplyDirect(adjustment.Settings, _activeProfileName);
             LoadIntoEditor(adjustment.Settings);
         }
+    }
+
+    private string _trayText = "Tweakstone";
+    /// <summary>Hover text of the notification-area icon, e.g. "Tweakstone · 57°C · 133 W · Profil: Otomatik UV".</summary>
+    public string TrayText { get => _trayText; private set => Set(ref _trayText, value); }
+
+    private string TrayLine(GpuTelemetry s)
+    {
+        var parts = new List<string> { "Tweakstone" };
+        if (s.TemperatureC is { } t) parts.Add($"{t:0}°C");
+        if (s.PowerW is { } w) parts.Add($"{w:0} W");
+        if (_activeProfileName is { } name) parts.Add(L.F("Profil: {0}", name));
+        var text = string.Join(" · ", parts);
+        return text.Length <= 127 ? text : text[..126] + "…";  // NotifyIcon.Text limit
     }
 
     private UserProfile? ActiveProfile() =>

@@ -34,7 +34,7 @@ public partial class App : Application
             var answer = MessageBox.Show(
                 L.T("Desteklenen bir NVIDIA ekran kartı bulunamadı (NVML yüklenemedi).\n\n") +
                 L.T("AMD desteği bir sonraki sürümde geliyor. Arayüzü denemek için demo modunda açılsın mı?"),
-                "GPU Tweak", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                "Tweakstone", MessageBoxButton.YesNo, MessageBoxImage.Information);
             if (answer != MessageBoxResult.Yes)
             {
                 Shutdown();
@@ -44,11 +44,13 @@ public partial class App : Application
         }
 
         _viewModel = new MainViewModel(backend, dataDirectory, crash);
-        MainWindow = new MainWindow(_viewModel);
+        var window = new MainWindow(_viewModel);
+        MainWindow = window;
         // Started by Windows at sign-in: stay out of the way, the profile is applied in the background.
         if (e.Args.Any(a => a.Equals(Native.StartupTask.StartupArgument, StringComparison.OrdinalIgnoreCase)))
-            MainWindow.WindowState = WindowState.Minimized;
-        MainWindow.Show();
+            window.StartInTray();
+        else
+            window.Show();
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -59,7 +61,7 @@ public partial class App : Application
 
     private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        MessageBox.Show(e.Exception.Message, L.T("GPU Tweak – beklenmeyen hata"), MessageBoxButton.OK, MessageBoxImage.Error);
+        MessageBox.Show(e.Exception.Message, L.T("Tweakstone – beklenmeyen hata"), MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
     }
 }
