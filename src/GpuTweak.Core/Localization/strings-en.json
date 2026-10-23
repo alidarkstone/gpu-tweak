@@ -35,7 +35,6 @@
  "\"{0}\" yarı güçte yüklendi (offset'ler %50). Uygula, test et, sonra adım adım artır.": "\"{0}\" loaded at half strength (offsets 50%). Apply, test, then raise step by step.",
  "GPU {0:0}°C üstüne çıktı. Güvenlik için varsayılan ayarlara dönüldü.": "GPU went above {0:0}°C. Switched back to default settings for safety.",
  "Otomatik UV": "Auto UV",
- " Uygulandı ve \"Otomatik UV\" profili olarak kaydedildi.": " Applied and saved as the \"Auto UV\" profile.",
  "Birkaç gün oyunlarda sorunsuz giderse profili \"Stabil\" işaretle; o zaman açılışta otomatik uygulanabilir.": "If games run fine for a few days, mark the profile \"Stable\"; then it can be applied at startup.",
  "Bu ayarlar {0} oyunda sorunsuz çalıştı. \"{1}\" profilini \"Stabil\" işaretleyebilirsin.": "These settings ran {0} of gaming without problems. You can mark \"{1}\" as \"Stable\".",
  "Oyun yok": "No game",
@@ -123,7 +122,6 @@
  "Maks": "Max",
  "Yük": "Load",
  "VRAM · Fan": "VRAM · Fan",
- "Kartını kendisi test eder ve FPS kaybetmeden en düşük voltajlı, en serin ayarı bulur. Başka bir ayar yapmana gerek yok, sadece Başlat'a bas. Yaklaşık 20 dakika sürer; bu sırada oyun açma, bilgisayarı boşta bırak.": "Tests your card by itself and finds the coolest, lowest-voltage setting without losing FPS. Nothing else to set, just press Start. Takes about 20 minutes; don't play games meanwhile, leave the PC idle.",
  "Kaldığı yerden devam": "Resume",
  "Başlat": "Start",
  "Durdur": "Stop",
@@ -199,5 +197,15 @@
  "Kartın hatalı hesap ürettiği an sayısı. Bulunan her artifact o ayarın elenmesi demek.": "How many times the card produced a wrong result. Every artifact rules that setting out.",
  "Ayar": "Setting",
  "Sonuç": "Result",
- "Otomatik ayar çalışınca her denenen değer burada bir satır olarak görünür.": "Each value tried by auto-tune appears here as a row."
+ "Otomatik ayar çalışınca her denenen değer burada bir satır olarak görünür.": "Each value tried by auto-tune appears here as a row.",
+ "Kartını kendisi test eder. Hedefi seç ve Başlat'a bas. Yaklaşık 20 dakika sürer; bu sırada oyun açma, bilgisayarı boşta bırak.": "Tests your card by itself. Pick a goal and press Start. Takes about 20 minutes; don't play games meanwhile, leave the PC idle.",
+ "Serin ve sessiz": "Cool and quiet",
+ "Verimli": "Efficient",
+ "Overclock: saat kilidi yok, güç limiti kartın izin verdiği en yüksek değerde. Çekirdek hızı hatasız kaldığı yere kadar artırılır. FPS biraz artar, kart biraz daha ısınır.": "Overclock: no clock lock, power limit at the highest value the card allows. The core clock is raised as far as it stays error-free. Slightly more FPS, the card runs a bit warmer.",
+ "Hız stok boost'un %6 altında kilitlenir ve voltaj düşürülür. FPS biraz düşer, güç ve ısı belirgin azalır.": "The clock is locked 6% below stock boost and the voltage is lowered. FPS drops a little, power and heat drop noticeably.",
+ "Undervolt: hız stokta kalır, voltaj düşürülür. FPS aynı kalır; kart daha serin ve sessiz çalışır.": "Undervolt: the clock stays at stock and the voltage is lowered. Same FPS; the card runs cooler and quieter.",
+ "Otomatik OC": "Auto OC",
+ "Otomatik Verimli": "Auto Efficient",
+ " Uygulandı ve \"{0}\" profili olarak kaydedildi.": " Applied and saved as the \"{0}\" profile.",
+ "Tatlı nokta: çekirdek +{0} MHz, güç limiti {1} W.": "Sweet spot: core +{0} MHz, power limit {1} W."
 }

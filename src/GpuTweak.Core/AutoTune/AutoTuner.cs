@@ -17,6 +17,8 @@ public sealed record TunerOptions
     public int MaxSearchOffsetMHz { get; init; } = 450;
     /// <summary>Work-per-second must stay at least this fraction of stock, otherwise the step counts as a loss.</summary>
     public double MinScoreRatio { get; init; } = 0.99;
+    /// <summary>For <see cref="TuneGoal.Efficient"/>: the clock cap as a fraction of the stock boost clock.</summary>
+    public double EfficientClockRatio { get; init; } = 0.94;
     public double AbortTemperatureC { get; init; } = 85;
     public TimeSpan SampleInterval { get; init; } = TimeSpan.FromMilliseconds(500);
 }
@@ -45,11 +47,12 @@ public sealed record TuneResult(
 }
 
 /// <summary>
-/// Finds the undervolt sweet spot without losing performance:
+/// Finds the sweet spot for a <see cref="TuneGoal"/>:
 /// 1. measure the highest boost clock the card reaches at stock (light, bursty load),
-/// 2. cap the core clock there, so no game ever runs slower than stock,
-/// 3. raise the core offset step by step (= lower voltage at that clock) while a self-checking workload
-///    verifies every result and that real throughput does not drop,
+/// 2. Cool: cap the core clock there, so no game runs slower than stock; Efficient: cap it a little lower;
+///    Performance: no cap and the power limit at the vBIOS maximum,
+/// 3. raise the core offset step by step (= lower voltage at the capped clock, or higher clocks without a cap)
+///    while a self-checking workload verifies every result and that real throughput does not drop,
 /// 4. step back by a safety margin from the last passing value and validate for several minutes.
 /// </summary>
 public sealed class AutoTuner
@@ -74,11 +77,11 @@ public sealed class AutoTuner
 
     private sealed record Measurement(StressResult Result, double AvgPowerW, double MaxTemperatureC, double HighClockMHz, bool Overheated);
 
-    public async Task<TuneResult> RunAsync(TuneJournal? resume, CancellationToken cancellationToken)
+    public async Task<TuneResult> RunAsync(TuneJournal? resume, CancellationToken cancellationToken, TuneGoal goal = TuneGoal.Cool)
     {
         try
         {
-            return await RunCoreAsync(resume, cancellationToken);
+            return await RunCoreAsync(resume, resume?.Goal ?? goal, cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -95,7 +98,7 @@ public sealed class AutoTuner
         }
     }
 
-    private async Task<TuneResult> RunCoreAsync(TuneJournal? resume, CancellationToken ct)
+    private async Task<TuneResult> RunCoreAsync(TuneJournal? resume, TuneGoal goal, CancellationToken ct)
     {
         if (_backend.Limits.CoreOffsetMaxMHz <= 0)
             return Fail(L.T("Sürücü bu kartta çekirdek offset ayarına izin vermiyor, bu yüzden undervolt yapılamıyor. Sürücüyü güncellemeyi dene."));
@@ -119,9 +122,10 @@ public sealed class AutoTuner
             if (!baseline.Result.Passed) return Fail(L.F("Stok ayarlarda hata: {0}", baseline.Result.Failure));
 
             _steps?.Report(new TuneStep(L.T("Stok"), true, null, 1, baseline.AvgPowerW, baseline.MaxTemperatureC));
-            var maxClock = (int)(Math.Max(probe.HighClockMHz, baseline.HighClockMHz) / 15) * 15;
-            if (maxClock <= 0) return Fail(L.T("Çekirdek hızı okunamadı."));
-            journal = new TuneJournal(maxClock, baseline.Result.Score, baseline.AvgPowerW, baseline.MaxTemperatureC, 0, null, DateTimeOffset.Now);
+            var boost = Math.Max(probe.HighClockMHz, baseline.HighClockMHz);
+            if (boost <= 0) return Fail(L.T("Çekirdek hızı okunamadı."));
+            var maxClock = RoundDown((int)(goal == TuneGoal.Efficient ? boost * _options.EfficientClockRatio : boost));
+            journal = new TuneJournal(maxClock, baseline.Result.Score, baseline.AvgPowerW, baseline.MaxTemperatureC, 0, null, DateTimeOffset.Now, goal);
             journal.Save(_dataDirectory);
         }
         else
@@ -145,7 +149,7 @@ public sealed class AutoTuner
             journal = journal with { LastStableOffsetMHz = lastStable, TestingOffsetMHz = offset };
             journal.Save(_dataDirectory);
 
-            var step = await TryOffsetAsync(journal.MaxClockMHz, offset, StressPattern.Mixed, _options.Step, journal.BaselineScore, ct);
+            var step = await TryOffsetAsync(journal, offset, StressPattern.Mixed, _options.Step, ct);
             if (step is not null)
             {
                 Report(TunePhase.Searching, L.F("+{0} MHz geçemedi: {1}", offset, step), fraction, offset);
@@ -167,15 +171,17 @@ public sealed class AutoTuner
             journal = journal with { TestingOffsetMHz = candidate };
             journal.Save(_dataDirectory);
 
-            var settings = Settings(journal.MaxClockMHz, candidate);
+            var settings = journal.Settings(candidate, _backend.Limits.PowerMaxW);
             _backend.Apply(settings);
             var validation = await MeasureAsync(StressPattern.Mixed, _options.Validation, ct);
-            var failure = Judge(validation, journal.BaselineScore);
+            var failure = Judge(validation, journal);
             ReportStep(L.F("+{0} MHz (doğrulama)", candidate), failure, validation, journal.BaselineScore);
             if (failure is null)
             {
                 TuneJournal.Delete(_dataDirectory);
-                var message = L.F("Tatlı nokta: max {0} MHz, çekirdek +{1} MHz.", journal.MaxClockMHz, candidate);
+                var message = journal.Goal == TuneGoal.Performance
+                    ? L.F("Tatlı nokta: çekirdek +{0} MHz, güç limiti {1} W.", candidate, settings.PowerLimitW ?? _backend.Limits.PowerDefaultW)
+                    : L.F("Tatlı nokta: max {0} MHz, çekirdek +{1} MHz.", journal.MaxClockMHz, candidate);
                 Report(TunePhase.Done, message, 1, candidate);
                 return new TuneResult(true, message, settings,
                     journal.BaselineScore, validation.Result.Score,
@@ -193,14 +199,14 @@ public sealed class AutoTuner
     }
 
     /// <summary>Returns null when the offset passed, otherwise the reason it failed.</summary>
-    private async Task<string?> TryOffsetAsync(int maxClock, int offset, StressPattern pattern, TimeSpan duration, double baselineScore, CancellationToken ct)
+    private async Task<string?> TryOffsetAsync(TuneJournal journal, int offset, StressPattern pattern, TimeSpan duration, CancellationToken ct)
     {
         try
         {
-            _backend.Apply(Settings(maxClock, offset));
+            _backend.Apply(journal.Settings(offset, _backend.Limits.PowerMaxW));
             var measurement = await MeasureAsync(pattern, duration, ct);
-            var failure = Judge(measurement, baselineScore);
-            ReportStep($"+{offset} MHz", failure, measurement, baselineScore);
+            var failure = Judge(measurement, journal);
+            ReportStep($"+{offset} MHz", failure, measurement, journal.BaselineScore);
             return failure;
         }
         finally
@@ -210,11 +216,14 @@ public sealed class AutoTuner
         }
     }
 
-    private string? Judge(Measurement m, double baselineScore)
+    private string? Judge(Measurement m, TuneJournal journal)
     {
+        var baselineScore = journal.BaselineScore;
+        // The efficient goal gives up a little speed on purpose (the lower clock cap); anything beyond that is a loss.
+        var minRatio = journal.Goal == TuneGoal.Efficient ? _options.MinScoreRatio * _options.EfficientClockRatio : _options.MinScoreRatio;
         if (!m.Result.Passed) return m.Result.Failure ?? L.T("hata");
         if (m.Overheated) return L.F("sıcaklık {0:0}°C'yi geçti", _options.AbortTemperatureC);
-        if (m.Result.Score < baselineScore * _options.MinScoreRatio)
+        if (m.Result.Score < baselineScore * minRatio)
             return L.F("performans stoka göre %{0:0.0} düştü (clock stretching)", 100 * (1 - m.Result.Score / baselineScore));
         return null;
     }
@@ -280,8 +289,6 @@ public sealed class AutoTuner
     private void ReportStep(string label, string? failure, Measurement m, double baselineScore) =>
         _steps?.Report(new TuneStep(label, failure is null, failure,
             baselineScore > 0 ? m.Result.Score / baselineScore : 0, m.AvgPowerW, m.MaxTemperatureC));
-
-    private static TuningSettings Settings(int maxClock, int offset) => new(CoreOffsetMHz: offset, MaxCoreClockMHz: maxClock);
 
     private static int RoundDown(int mhz) => mhz <= 0 ? 0 : mhz / 15 * 15;
 

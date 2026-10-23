@@ -1,6 +1,18 @@
 using System.Text.Json;
+using GpuTweak.Core.Models;
 
 namespace GpuTweak.Core.AutoTune;
+
+/// <summary>What the auto-tune optimizes for.</summary>
+public enum TuneGoal
+{
+    /// <summary>Undervolt: same clocks as stock at lower voltage. Cooler and quieter, same FPS.</summary>
+    Cool,
+    /// <summary>Overclock: no clock cap, power limit at the vBIOS maximum, core offset as high as stays error-free.</summary>
+    Performance,
+    /// <summary>Clock capped a little below stock boost plus undervolt: much less power and heat for a small FPS cost.</summary>
+    Efficient,
+}
 
 /// <summary>
 /// Written before every tuning step. If the PC crashes mid-test, the next start knows which offset
@@ -13,9 +25,17 @@ public sealed record TuneJournal(
     double BaselineTemperatureC,
     int LastStableOffsetMHz,
     int? TestingOffsetMHz,
-    DateTimeOffset StartedAt)
+    DateTimeOffset StartedAt,
+    TuneGoal Goal = TuneGoal.Cool)
 {
     private const string FileName = "autotune.json";
+
+    /// <summary>The settings a step at <paramref name="offsetMHz"/> runs with, for this journal's goal.</summary>
+    public TuningSettings Settings(int offsetMHz, int powerMaxW) => Goal switch
+    {
+        TuneGoal.Performance => new TuningSettings(CoreOffsetMHz: offsetMHz, PowerLimitW: powerMaxW > 0 ? powerMaxW : null),
+        _ => new TuningSettings(CoreOffsetMHz: offsetMHz, MaxCoreClockMHz: MaxClockMHz),
+    };
 
     public static TuneJournal? Load(string dataDirectory)
     {

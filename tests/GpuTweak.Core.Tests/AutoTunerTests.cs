@@ -49,6 +49,28 @@ public sealed class AutoTunerTests : IDisposable
     }
 
     [Fact]
+    public async Task PerformanceGoalRaisesOffsetWithoutClockCap()
+    {
+        var stress = new FakeStress(_backend, failAbove: 200);
+        var result = await new AutoTuner(_backend, stress, _dir, Fast).RunAsync(null, CancellationToken.None, TuneGoal.Performance);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(135, result.Settings!.CoreOffsetMHz);
+        Assert.Null(result.Settings.MaxCoreClockMHz);
+        Assert.Equal(_backend.Limits.PowerMaxW, result.Settings.PowerLimitW);
+    }
+
+    [Fact]
+    public async Task EfficientGoalCapsBelowStockBoost()
+    {
+        var stress = new FakeStress(_backend, failAbove: 200);
+        var result = await new AutoTuner(_backend, stress, _dir, Fast).RunAsync(null, CancellationToken.None, TuneGoal.Efficient);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(2535, result.Settings!.MaxCoreClockMHz); // 2700 * 0.94 = 2538, rounded down to 15 MHz
+    }
+
+    [Fact]
     public async Task ThroughputLossCountsAsFailure()
     {
         var stress = new FakeStress(_backend, failAbove: 400, stretchAbove: 150);

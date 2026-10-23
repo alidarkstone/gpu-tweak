@@ -203,12 +203,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (!Set(ref _isTuning, value)) return;
             OnPropertyChanged(nameof(MonitorTitle));
+            OnPropertyChanged(nameof(CanChooseGoal));
             CommandManager.InvalidateRequerySuggested();
         }
     }
     public double TuneProgress { get => _tuneProgress; private set => Set(ref _tuneProgress, value); }
     public string? TuneMessage { get => _tuneMessage; private set => Set(ref _tuneMessage, value); }
-    public TuneJournal? PendingJournal { get => _pendingJournal; private set { if (Set(ref _pendingJournal, value)) OnPropertyChanged(nameof(HasPendingJournal)); } }
+    public TuneJournal? PendingJournal
+    {
+        get => _pendingJournal;
+        private set
+        {
+            if (!Set(ref _pendingJournal, value)) return;
+            OnPropertyChanged(nameof(HasPendingJournal));
+            OnPropertyChanged(nameof(CanChooseGoal));
+        }
+    }
     public bool HasPendingJournal => PendingJournal is not null;
     public TuneResult? TuneResult
     {
@@ -226,6 +236,34 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         : "";
 
     public TuneMonitorViewModel Monitor { get; } = new();
+
+    // ---- Auto-tune goal ----
+    public TuneGoal Goal => _settings.TuneGoal;
+    public bool IsGoalCool => Goal == TuneGoal.Cool;
+    public bool IsGoalPerformance => Goal == TuneGoal.Performance;
+    public bool IsGoalEfficient => Goal == TuneGoal.Efficient;
+    public bool CanChooseGoal => !IsTuning && PendingJournal is null;
+    public string GoalDescription => Goal switch
+    {
+        TuneGoal.Performance => L.T("Overclock: saat kilidi yok, güç limiti kartın izin verdiği en yüksek değerde. Çekirdek hızı hatasız kaldığı yere kadar artırılır. FPS biraz artar, kart biraz daha ısınır."),
+        TuneGoal.Efficient => L.T("Hız stok boost'un %6 altında kilitlenir ve voltaj düşürülür. FPS biraz düşer, güç ve ısı belirgin azalır."),
+        _ => L.T("Undervolt: hız stokta kalır, voltaj düşürülür. FPS aynı kalır; kart daha serin ve sessiz çalışır."),
+    };
+    public ICommand SetGoalCommand => new RelayCommand(p =>
+    {
+        if (!CanChooseGoal || !Enum.TryParse<TuneGoal>(p as string, out var goal) || goal == Goal) return;
+        _settings = _settings with { TuneGoal = goal };
+        _settingsStore.Save(_settings);
+        foreach (var name in new[] { nameof(Goal), nameof(IsGoalCool), nameof(IsGoalPerformance), nameof(IsGoalEfficient), nameof(GoalDescription) })
+            OnPropertyChanged(name);
+    });
+
+    private static string ProfileNameFor(TuneGoal goal) => goal switch
+    {
+        TuneGoal.Performance => L.T("Otomatik OC"),
+        TuneGoal.Efficient => L.T("Otomatik Verimli"),
+        _ => L.T("Otomatik UV"),
+    };
 
     // ---- Game stability ----
     public StabilityViewModel Stability { get; } = new();
@@ -540,6 +578,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private async Task StartTuneAsync(bool resume)
     {
         var journal = resume ? PendingJournal : null;
+        var goal = journal?.Goal ?? Goal;
+        var profileName = ProfileNameFor(goal);
         if (!resume) TuneJournal.Delete(_dataDirectory);
         PendingJournal = null;
         TuneResult = null;
@@ -563,7 +603,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             Monitor.Start(stress);
             IsMonitorVisible = true;
             var tuner = new AutoTuner(_backend, stress, _dataDirectory, progress: progress, steps: steps);
-            result = await Task.Run(() => tuner.RunAsync(journal, _tuneCts.Token));
+            result = await Task.Run(() => tuner.RunAsync(journal, _tuneCts.Token, goal));
         }
         catch (Exception e)
         {
@@ -582,21 +622,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(TuneSummary));
         // The test may have reset the driver on purpose; that is not a gaming problem.
         _stability.SkipToNow();
-        if (result is { Success: true, Settings: { } tuned })
+        // The silicon score is the undervolt headroom at the stock clock, so only the "cool" goal measures it.
+        if (result is { Success: true, Settings: { } tuned } && goal == TuneGoal.Cool)
         {
             _settings = _settings with { Silicon = new SiliconResult(Info.Name, result.HighestPassedOffsetMHz, result.ReachedSearchLimit, tuned.CoreOffsetMHz, DateTimeOffset.Now) };
             _settingsStore.Save(_settings);
         }
         if (result is { Success: true, Settings: { } settings })
         {
-            ApplyDirect(settings, L.T("Otomatik UV"));
+            ApplyDirect(settings, profileName);
             LoadIntoEditor(settings);
-            var profile = new UserProfile(L.T("Otomatik UV"), Info.Name, settings, CreatedAt: DateTimeOffset.Now);
+            var profile = new UserProfile(profileName, Info.Name, settings, CreatedAt: DateTimeOffset.Now);
             _profileStore.Save(profile);
             var existing = Profiles.FirstOrDefault(p => p.Name == profile.Name);
             if (existing is not null) Profiles[Profiles.IndexOf(existing)] = profile;
             else Profiles.Add(profile);
-            TuneMessage = result.Message + L.T(" Uygulandı ve \"Otomatik UV\" profili olarak kaydedildi.");
+            TuneMessage = result.Message + L.F(" Uygulandı ve \"{0}\" profili olarak kaydedildi.", profileName);
             Status = L.T("Birkaç gün oyunlarda sorunsuz giderse profili \"Stabil\" işaretle; o zaman açılışta otomatik uygulanabilir.");
             StatusIsWarning = false;
         }
