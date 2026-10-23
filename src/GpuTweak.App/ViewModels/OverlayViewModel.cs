@@ -3,6 +3,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using GpuTweak.Core.Models;
 using GpuTweak.Core.Settings;
+using GpuTweak.Core;
 using GpuTweak.Core.Localization;
 
 namespace GpuTweak.App.ViewModels;
@@ -56,6 +57,7 @@ public sealed class OverlayViewModel : ObservableObject
     public bool ShowPower { get => _settings.ShowPower; set => Change(_settings with { ShowPower = value }); }
     public bool ShowVram { get => _settings.ShowVram; set => Change(_settings with { ShowVram = value }); }
     public bool ShowFan { get => _settings.ShowFan; set => Change(_settings with { ShowFan = value }); }
+    public bool ShowFps { get => _settings.ShowFps; set => Change(_settings with { ShowFps = value }); }
     public bool ShowLoad { get => _settings.ShowLoad; set => Change(_settings with { ShowLoad = value }); }
 
     public Brush Background => new SolidColorBrush(Color.FromArgb((byte)(_settings.Opacity * 255), 0x16, 0x16, 0x18));
@@ -66,13 +68,21 @@ public sealed class OverlayViewModel : ObservableObject
     }
 
     private GpuTelemetry? _last;
+    private FrameRate? _lastFps;
 
-    public void Update(GpuTelemetry s)
+    public void Update(GpuTelemetry s, FrameRate? fps = null)
     {
         _last = s;
+        _lastFps = fps;
         var rows = new List<OverlayRow>();
+        if (ShowFps && fps is not null)
+        {
+            rows.Add(new("FPS", $"{fps.Current:0}", ""));
+            rows.Add(new(L.T("Min · Ort · Maks"), $"{fps.Min:0} · {fps.Average:0} · {fps.Max:0}", ""));
+        }
         if (ShowLoad && s.LoadPercent is { } l) rows.Add(new("GPU", $"{l}", "%"));
         if (ShowTemperature && s.TemperatureC is { } t) rows.Add(new(L.T("Sıcaklık"), $"{t:0}", "°C"));
+        if (ShowTemperature && s.MemoryTemperatureC is { } mt) rows.Add(new(L.T("Bellek sıc."), $"{mt:0}", "°C"));
         if (ShowCoreClock && s.CoreClockMHz is { } c) rows.Add(new(L.T("Çekirdek"), $"{c}", "MHz"));
         if (ShowMemoryClock && s.MemoryClockMHz is { } m) rows.Add(new(L.T("Bellek"), $"{m}", "MHz"));
         if (ShowPower && s.PowerW is { } p) rows.Add(new(L.T("Güç"), $"{p:0}", "W"));
@@ -86,7 +96,7 @@ public sealed class OverlayViewModel : ObservableObject
         if (updated == _settings) return;
         _settings = updated;
         OnPropertyChanged(string.Empty); // refresh every binding
-        if (_last is not null) Update(_last);
+        if (_last is not null) Update(_last, _lastFps);
         SettingsChanged?.Invoke(updated);
     }
 

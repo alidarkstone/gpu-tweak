@@ -22,7 +22,9 @@ public sealed record GpuTelemetry(
     long? VramUsedBytes,
     long? VramTotalBytes,
     int? FanPercent,
-    int? LoadPercent);
+    int? LoadPercent,
+    /// <summary>Memory (VRAM) temperature; most GeForce cards do not report it through NVML.</summary>
+    double? MemoryTemperatureC = null);
 
 /// <summary>
 /// Everything the user can change. Null means "driver default" for that field.

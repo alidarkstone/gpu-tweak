@@ -87,7 +87,31 @@ public sealed class NvmlBackend : IGpuBackend
             DateTimeOffset.Now, temp, core, mem, power, limit,
             hasMemory ? (long)memory.Used : null,
             hasMemory ? (long)memory.Total : null,
-            fan, load);
+            fan, load, ReadMemoryTemperature());
+    }
+
+    private bool _memoryTemperatureUnsupported;
+
+    /// <summary>VRAM temperature, when the card reports it. Asked once more only if the first answer was not "not supported".</summary>
+    private double? ReadMemoryTemperature()
+    {
+        if (_memoryTemperatureUnsupported) return null;
+        try
+        {
+            var values = new[] { new Nvml.FieldValue { FieldId = Nvml.FieldMemoryTemperature } };
+            var result = Nvml.DeviceGetFieldValues(_device, 1, values);
+            if (result == Nvml.Return.Success && values[0].Result == Nvml.Return.Success)
+            {
+                var celsius = (uint)values[0].Value;
+                if (celsius is > 0 and < 150) return celsius;
+            }
+            _memoryTemperatureUnsupported = result is Nvml.Return.NotSupported || values[0].Result is Nvml.Return.NotSupported;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            _memoryTemperatureUnsupported = true;
+        }
+        return null;
     }
 
     public TuningSettings ReadCurrentSettings()

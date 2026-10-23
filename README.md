@@ -103,7 +103,8 @@ NVIDIA/AMD logoları ticari marka olduğu için exe içinde gelmez; widget'ta ma
 - [x] Otomatik ayar: hata doğrulamalı stres testiyle undervolt tatlı noktası
 - [x] Arayüz pencere boyutuna göre ölçeklenir, kaydırma gerekmez
 - [x] Canlı test paneli: animasyonlu test görüntüsü ve "Bulunan artifact" sayacı, canlı grafikler, adım sonuçları
-- [ ] FPS ve 1% low (PresentMon / ETW, enjeksiyonsuz)
+- [x] Widget'ta FPS: şu an / min / ort / maks (ETW Present olayları, enjeksiyonsuz). Bellek sıcaklığı (kart veriyorsa)
+- [ ] 1% low
 - [ ] Kaynaklı topluluk önerileri veritabanını doldurmak
 - [ ] AMD (ADLX)
 - [x] Windows ile başlatma

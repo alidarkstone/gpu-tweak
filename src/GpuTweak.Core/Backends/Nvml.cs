@@ -93,6 +93,22 @@ internal static class Nvml
     [DllImport(Lib, EntryPoint = "nvmlDeviceGetHandleByIndex_v2")] public static extern Return DeviceGetHandleByIndex(uint index, out IntPtr device);
     [DllImport(Lib, EntryPoint = "nvmlDeviceGetName")] private static extern Return DeviceGetName(IntPtr device, byte[] name, uint length);
 
+    /// <summary>nvmlFieldValue_t. Value is a union; every field read here is an unsigned int in its low 4 bytes.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct FieldValue
+    {
+        public uint FieldId;
+        public uint ScopeId;
+        public long Timestamp;
+        public long LatencyUsec;
+        public int ValueType;
+        public Return Result;
+        public ulong Value;
+    }
+
+    public const uint FieldMemoryTemperature = 82; // NVML_FI_DEV_MEMORY_TEMP
+
+    [DllImport(Lib, EntryPoint = "nvmlDeviceGetFieldValues")] public static extern Return DeviceGetFieldValues(IntPtr device, int count, [In, Out] FieldValue[] values);
     [DllImport(Lib, EntryPoint = "nvmlDeviceGetTemperature")] public static extern Return DeviceGetTemperature(IntPtr device, int sensor, out uint tempC);
     [DllImport(Lib, EntryPoint = "nvmlDeviceGetClockInfo")] public static extern Return DeviceGetClockInfo(IntPtr device, ClockType type, out uint mhz);
     [DllImport(Lib, EntryPoint = "nvmlDeviceGetMaxClockInfo")] public static extern Return DeviceGetMaxClockInfo(IntPtr device, ClockType type, out uint mhz);

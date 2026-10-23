@@ -77,6 +77,8 @@
                             </Grid>
                             <TextBlock Text="{Binding Temperature}" Style="{StaticResource MetricValue}"/>
                             <ProgressBar Style="{StaticResource LevelBar}" Value="{Binding TemperatureLevel, Mode=OneWay}" Foreground="{StaticResource OrangeBrush}"/>
+                            <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0"
+                                       Visibility="{Binding MemoryTemperature, Converter={x:Static local:Converters.NotEmptyToVisibility}}"><Run local:Loc.Text="Bellek: "/><Run Text="{Binding MemoryTemperature, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/></TextBlock>
                             <UniformGrid Columns="3" Margin="0,8,0,0" local:Loc.ToolTip="Program açıldığından (veya Sıfırla'ya basıldığından) beri">
                                 <StackPanel><TextBlock Text="Min" Style="{StaticResource Caption}"/><TextBlock Text="{Binding TemperatureMin}" FontWeight="SemiBold"/></StackPanel>
                                 <StackPanel><TextBlock local:Loc.Text="Ort" Style="{StaticResource Caption}"/><TextBlock Text="{Binding TemperatureAvg}" FontWeight="SemiBold"/></StackPanel>
@@ -226,6 +228,7 @@
                                 <WrapPanel>
                                     <CheckBox Style="{StaticResource Chip}" Content="Logo" IsChecked="{Binding ShowLogo}"/>
                                     <CheckBox Style="{StaticResource Chip}" Content="Model" IsChecked="{Binding ShowModel}"/>
+                                    <CheckBox Style="{StaticResource Chip}" Content="FPS" IsChecked="{Binding ShowFps}"/>
                                     <CheckBox Style="{StaticResource Chip}" local:Loc.Content="Yük" IsChecked="{Binding ShowLoad}"/>
                                     <CheckBox Style="{StaticResource Chip}" local:Loc.Content="Sıcaklık" IsChecked="{Binding ShowTemperature}"/>
                                     <CheckBox Style="{StaticResource Chip}" local:Loc.Content="Çekirdek" IsChecked="{Binding ShowCoreClock}"/>

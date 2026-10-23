@@ -218,5 +218,8 @@
  "Stres testi durduruldu.": "Stress test stopped.",
  "Stres testi geçemedi: {0}.": "Stress test failed: {0}.",
  "Bu ayarlar stres testinde hata verdi, kart varsayılan ayarlara döndürüldü. Otomatik ayarı çalıştır ya da çekirdek offset'i düşür.": "These settings failed the stress test, so the card is back at default settings. Run auto-tune or lower the core offset.",
- "Kart varsayılan ayarlarda bile hata verdi. Sürücüyü, soğutmayı ve güç kablolarını kontrol et.": "The card failed even at default settings. Check the driver, cooling and power cables."
+ "Kart varsayılan ayarlarda bile hata verdi. Sürücüyü, soğutmayı ve güç kablolarını kontrol et.": "The card failed even at default settings. Check the driver, cooling and power cables.",
+ "Min · Ort · Maks": "Min · Avg · Max",
+ "Bellek sıc.": "Mem temp",
+ "Bellek: ": "Memory: "
 }

@@ -38,6 +38,7 @@ public sealed class DemoBackend : IGpuBackend
             VramUsedBytes: 6L * 1024 * 1024 * 1024 + _random.Next(0, 512) * 1024L * 1024,
             VramTotalBytes: Info.VramBytes,
             FanPercent: _current.FanPercent ?? (int)Math.Clamp(temp - 20, 30, 100),
+            MemoryTemperatureC: Math.Round(temp + 8),
             LoadPercent: load);
     }
 

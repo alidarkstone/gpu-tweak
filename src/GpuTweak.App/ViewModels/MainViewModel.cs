@@ -31,6 +31,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly StabilityTracker _stability;
     private readonly GameSessionDetector _sessions = new();
     private readonly DispatcherTimer _stabilityTimer;
+    private readonly FrameRateTracker _frameRates = new();
+    private readonly PresentEventSource _presents;
     private CancellationTokenSource? _tuneCts;
     private AppSettings _settings;
     private TuningSettings _active;
@@ -102,6 +104,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         // Keep the startup task pointing at this exe, in case the user moved it or downloaded a newer version.
         if (_startWithWindows) StartupTask.Enable();
 
+        _presents = new PresentEventSource(_frameRates);
         _telemetry = new TelemetryService(backend, TimeSpan.FromMilliseconds(_settings.PollIntervalMs));
         _telemetry.Sample += s => _dispatcher.BeginInvoke(() => OnSample(s));
 
@@ -140,6 +143,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string TemperatureMin { get => _temperatureMin; private set => Set(ref _temperatureMin, value); }
     public string TemperatureAvg { get => _temperatureAvg; private set => Set(ref _temperatureAvg, value); }
     public string TemperatureMax { get => _temperatureMax; private set => Set(ref _temperatureMax, value); }
+    private string? _memoryTemperature;
+    /// <summary>VRAM temperature, or null when the card does not report it (the line is then hidden).</summary>
+    public string? MemoryTemperature { get => _memoryTemperature; private set => Set(ref _memoryTemperature, value); }
     public ICommand ResetTemperatureStatsCommand => new RelayCommand(() => { _temperatureStats.Reset(); ShowTemperatureStats(); });
 
     private void ShowTemperatureStats()
@@ -554,6 +560,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Temperature = s.TemperatureC is { } t ? $"{t:0}°" : "–";
         TemperatureLevel = s.TemperatureC is { } t2 ? Math.Clamp(t2 / 100.0, 0, 1) : 0;
         _temperatureStats.Add(s.TemperatureC);
+        MemoryTemperature = s.MemoryTemperatureC is { } mt ? $"{mt:0}°" : null;
         ShowTemperatureStats();
         CoreClock = s.CoreClockMHz is { } c ? $"{c}" : "–";
         MemoryClock = s.MemoryClockMHz is { } m ? $"{m}" : "–";
@@ -564,7 +571,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Fan = s.FanPercent is { } f ? $"{f}" : "–";
         Load = s.LoadPercent is { } l ? $"{l}" : "–";
         LoadLevel = (s.LoadPercent ?? 0) / 100.0;
-        Overlay.Update(s);
+        Overlay.Update(s, _frameRates.Sample(ForegroundApp.ProcessId(), PresentEventSource.Seconds(DateTime.Now)));
         Monitor.OnSample(s);
         if (!IsTuning) FeedSession(s);
 
@@ -867,6 +874,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _telemetry.Dispose();
+        _presents.Dispose();
         _stabilityTimer.Stop();
         if (_sessions.Flush() is { } session && session.Duration >= TimeSpan.FromMinutes(2)) _stability.AddSession(session);
         _applyGuard.Dispose();
