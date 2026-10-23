@@ -143,7 +143,7 @@
                             </StackPanel>
                         </Border>
 
-
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
                                 <TextBlock Text="Hızlı modlar" Style="{StaticResource SectionTitle}"/>
                                 <TextBlock Style="{StaticResource Caption}" Text="Sadece güç limitini değiştirir; her kartta güvenlidir."/>
@@ -161,7 +161,7 @@
                             </StackPanel>
                         </Border>
 
-
+                        <Border Style="{StaticResource Card}" DataContext="{Binding Overlay}">
                             <StackPanel>
                                 <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Enabled}">
                                     <StackPanel>
@@ -210,6 +210,7 @@
 
                     <!-- Column 2: manual overclock / undervolt -->
                     <StackPanel Grid.Column="2">
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
                                 <TextBlock Text="Overclock ve undervolt" Style="{StaticResource SectionTitle}"/>
                                 <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,14"
@@ -352,7 +353,7 @@
                             </StackPanel>
                         </Border>
 
-
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
                                 <TextBlock Text="Topluluk önerileri" Style="{StaticResource SectionTitle}"/>
                                 <TextBlock Style="{StaticResource Caption}" Text="Her öneri kaynağıyla birlikte gelir ve önce yarı güçte yüklenir. Her çip farklıdır; başlangıç noktası olarak kullan."/>
@@ -385,7 +386,6 @@
                                 </ItemsControl>
                             </StackPanel>
                         </Border>
-
                     </StackPanel>
                 </Grid>
             </Grid>
