@@ -68,6 +68,8 @@ public sealed class OverlayViewModel : ObservableObject
     }
 
     private GpuTelemetry? _last;
+    /// <summary>Once the card has reported a memory temperature, the row stays (with "–" while there is no reading).</summary>
+    private bool _hasMemoryTemperature;
     private FrameRate? _lastFps;
 
     public void Update(GpuTelemetry s, FrameRate? fps = null)
@@ -82,7 +84,9 @@ public sealed class OverlayViewModel : ObservableObject
         }
         if (ShowLoad && s.LoadPercent is { } l) rows.Add(new("GPU", $"{l}", "%"));
         if (ShowTemperature && s.TemperatureC is { } t) rows.Add(new(L.T("Sıcaklık"), $"{t:0}", "°C"));
-        if (ShowTemperature && s.MemoryTemperatureC is { } mt) rows.Add(new(L.T("Bellek sıc."), $"{mt:0}", "°C"));
+        _hasMemoryTemperature |= s.MemoryTemperatureC is not null;
+        if (ShowTemperature && _hasMemoryTemperature)
+            rows.Add(new(L.T("Bellek sıc."), s.MemoryTemperatureC is { } mt ? $"{mt:0}" : "–", "°C"));
         if (ShowCoreClock && s.CoreClockMHz is { } c) rows.Add(new(L.T("Çekirdek"), $"{c}", "MHz"));
         if (ShowMemoryClock && s.MemoryClockMHz is { } m) rows.Add(new(L.T("Bellek"), $"{m}", "MHz"));
         if (ShowPower && s.PowerW is { } p) rows.Add(new(L.T("Güç"), $"{p:0}", "W"));

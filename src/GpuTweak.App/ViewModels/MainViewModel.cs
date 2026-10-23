@@ -593,7 +593,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Temperature = s.TemperatureC is { } t ? $"{t:0}°" : "–";
         TemperatureLevel = s.TemperatureC is { } t2 ? Math.Clamp(t2 / 100.0, 0, 1) : 0;
         _temperatureStats.Add(s.TemperatureC);
-        MemoryTemperature = s.MemoryTemperatureC is { } mt ? $"{mt:0}°" : null;
+        // Keep the line once the card has shown it can report memory temperature.
+        MemoryTemperature = s.MemoryTemperatureC is { } mt ? $"{mt:0}°" : MemoryTemperature is null ? null : "–";
         ShowTemperatureStats();
         CoreClock = s.CoreClockMHz is { } c ? $"{c}" : "–";
         MemoryClock = s.MemoryClockMHz is { } m ? $"{m}" : "–";

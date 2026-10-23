@@ -91,6 +91,10 @@ public sealed class NvmlBackend : IGpuBackend
     }
 
     private bool _memoryTemperatureUnsupported;
+    private double? _lastMemoryTemperature;
+    private DateTime _lastMemoryTemperatureAt;
+    /// <summary>The sensor sometimes gives no answer when the card idles; bridge short gaps with the last reading.</summary>
+    private static readonly TimeSpan MemoryTemperatureHold = TimeSpan.FromSeconds(15);
 
     /// <summary>VRAM temperature, when the card reports it. Asked once more only if the first answer was not "not supported".</summary>
     private double? ReadMemoryTemperature()
@@ -103,15 +107,21 @@ public sealed class NvmlBackend : IGpuBackend
             if (result == Nvml.Return.Success && values[0].Result == Nvml.Return.Success)
             {
                 var celsius = (uint)values[0].Value;
-                if (celsius is > 0 and < 150) return celsius;
+                if (celsius is > 0 and < 150)
+                {
+                    _lastMemoryTemperature = celsius;
+                    _lastMemoryTemperatureAt = DateTime.UtcNow;
+                    return celsius;
+                }
             }
-            _memoryTemperatureUnsupported = result is Nvml.Return.NotSupported || values[0].Result is Nvml.Return.NotSupported;
+            _memoryTemperatureUnsupported = _lastMemoryTemperature is null
+                && (result is Nvml.Return.NotSupported || values[0].Result is Nvml.Return.NotSupported);
         }
         catch (EntryPointNotFoundException)
         {
             _memoryTemperatureUnsupported = true;
         }
-        return null;
+        return DateTime.UtcNow - _lastMemoryTemperatureAt < MemoryTemperatureHold ? _lastMemoryTemperature : null;
     }
 
     public TuningSettings ReadCurrentSettings()
