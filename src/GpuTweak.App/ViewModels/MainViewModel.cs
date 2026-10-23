@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using GpuTweak.App.Native;
 using GpuTweak.App.Stress;
 using GpuTweak.Core;
 using GpuTweak.Core.AutoTune;
@@ -74,12 +75,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ToggleAutoApplyCommand = new RelayCommand(p => ToggleAutoApply(p as UserProfile));
         UseSuggestionCommand = new RelayCommand(p => UseSuggestion(p as CommunityProfile));
         OpenSourceCommand = new RelayCommand(p => { if (p is CommunityProfile c) OpenUrl(c.SourceUrl); });
+        OpenDataFolderCommand = new RelayCommand(() => Process.Start(new ProcessStartInfo("explorer.exe", $"\"{_dataDirectory}\"") { UseShellExecute = true }));
 
         PendingJournal = TuneJournal.Load(dataDirectory);
         if (PendingJournal is not null && crash is not null && PendingJournal.TestingOffsetMHz is { } crashedAt)
             TuneMessage = $"Otomatik ayar testi +{crashedAt} MHz'de bilgisayarı kilitledi. Bu değer kararsız sayıldı; kaldığı yerden devam edebilirsin.";
         else if (PendingJournal is not null)
             TuneMessage = "Önceki otomatik ayar testi yarıda kaldı. Kaldığı yerden devam edebilirsin.";
+
+        // Keep the startup task pointing at this exe, in case the user moved it or downloaded a newer version.
+        if (_startWithWindows) StartupTask.Enable();
 
         _telemetry = new TelemetryService(backend, TimeSpan.FromMilliseconds(_settings.PollIntervalMs));
         _telemetry.Sample += s => _dispatcher.BeginInvoke(() => OnSample(s));
@@ -190,6 +195,32 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public TuneMonitorViewModel Monitor { get; } = new();
 
+    public string DataFolder => _dataDirectory;
+
+    private bool _startWithWindows = StartupTask.IsEnabled();
+    /// <summary>Starts the app at sign-in, so the profile marked stable + automatic is applied again after every reboot.</summary>
+    public bool StartWithWindows
+    {
+        get => _startWithWindows;
+        set
+        {
+            if (value == _startWithWindows) return;
+            var ok = value ? StartupTask.Enable() : StartupTask.Disable();
+            if (ok) _startWithWindows = value;
+            OnPropertyChanged();
+            if (!ok)
+            {
+                Status = "Windows başlangıç görevi ayarlanamadı.";
+                StatusIsWarning = true;
+            }
+            else if (value && !_profileStore.Profiles.Any(p => p.IsStable && p.AutoApplyOnStart))
+            {
+                Status = "Program artık Windows ile açılacak. Ayarının da uygulanması için bir profili \"Stabil\" ve \"Otomatik: açık\" yap.";
+                StatusIsWarning = false;
+            }
+        }
+    }
+
     /// <summary>Live panel at the bottom of the dashboard; on by default, remembered between runs.</summary>
     public bool IsMonitorVisible
     {
@@ -219,6 +250,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ICommand ToggleAutoApplyCommand { get; }
     public ICommand UseSuggestionCommand { get; }
     public ICommand OpenSourceCommand { get; }
+    public ICommand OpenDataFolderCommand { get; }
 
     private TuningSettings EditorSettings() => new(
         CoreOffset,

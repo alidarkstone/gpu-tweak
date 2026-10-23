@@ -290,6 +290,15 @@
                             <StackPanel>
                                 <TextBlock Text="Profillerim" Style="{StaticResource SectionTitle}"/>
                                 <TextBlock Style="{StaticResource Caption}" Text="Sadece stabil işaretlenen profiller açılışta otomatik uygulanabilir."/>
+                                <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding StartWithWindows}" Margin="0,12,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Windows ile başlat"/>
+                                        <TextBlock Style="{StaticResource Caption}"
+                                                   Text="Bilgisayar açılınca program küçültülmüş başlar ve &quot;Otomatik: açık&quot; profili yeniden uygular. Ekran kartı ayarları her yeniden başlatmada sıfırlandığı için gerekli."/>
+                                    </StackPanel>
+                                </CheckBox>
+                                <Button Style="{StaticResource LinkButton}" Content="Ayarların kaydedildiği klasörü aç" HorizontalAlignment="Left" Margin="-6,6,0,0"
+                                        Command="{Binding OpenDataFolderCommand}" ToolTip="{Binding DataFolder}"/>
                                 <ItemsControl ItemsSource="{Binding Profiles}" Margin="0,10,0,0">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>

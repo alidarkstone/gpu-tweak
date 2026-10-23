@@ -8,6 +8,7 @@ RivaTuner/Afterburner yeteneklerinde ama çok daha sade, kartına zarar vermemek
 - Ayarlar, profiller ve logolar exe'nin yanındaki `GpuTweakData` klasöründe tutulur. Klasör yazılamazsa `%LOCALAPPDATA%\GpuTweak` kullanılır.
 - NVIDIA kartı olmayan bir bilgisayarda arayüzü denemek için: `GpuTweak.exe --demo`
 - Overlay'i aç/kapat: **Ctrl + Shift + O**
+- **Windows ile başlat** (Profillerim kartı): Ekran kartı ayarları her yeniden başlatmada sıfırlanır. Bu seçenek açıkken program oturum açılınca küçültülmüş başlar ve "Stabil" + "Otomatik: açık" profili yeniden uygular. Yönetici izni gerektiği için Görev Zamanlayıcı'ya "GPU Tweak" adlı bir görev eklenir. Son açılan exe kullanılır.
 
 ## Güvenlik
 
@@ -77,5 +78,6 @@ NVIDIA/AMD logoları ticari marka olduğu için exe içinde gelmez; widget'ta ma
 - [ ] FPS ve 1% low (PresentMon / ETW, enjeksiyonsuz)
 - [ ] Kaynaklı topluluk önerileri veritabanını doldurmak
 - [ ] AMD (ADLX)
-- [ ] Fan eğrisi, sistem tepsisi, Windows ile başlatma
+- [x] Windows ile başlatma
+- [ ] Fan eğrisi, sistem tepsisi
 - [ ] (Deneysel) V/F eğrisi editörü

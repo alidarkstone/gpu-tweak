@@ -42,6 +42,9 @@ public partial class App : Application
 
         _viewModel = new MainViewModel(backend, dataDirectory, crash);
         MainWindow = new MainWindow(_viewModel);
+        // Started by Windows at sign-in: stay out of the way, the profile is applied in the background.
+        if (e.Args.Any(a => a.Equals(Native.StartupTask.StartupArgument, StringComparison.OrdinalIgnoreCase)))
+            MainWindow.WindowState = WindowState.Minimized;
         MainWindow.Show();
     }
 
