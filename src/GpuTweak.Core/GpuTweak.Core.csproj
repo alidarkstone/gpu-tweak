@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Profiles\community-profiles.json" LogicalName="GpuTweak.Core.community-profiles.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="GpuTweak.Core.Tests" />
+  </ItemGroup>
+</Project>

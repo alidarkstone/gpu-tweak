@@ -1,0 +1,56 @@
+<Window x:Class="GpuTweak.App.Views.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="GPU Tweak Overlay"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False" Focusable="False"
+        ResizeMode="NoResize" SizeToContent="WidthAndHeight"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+    <Border CornerRadius="14" Padding="14,10" Background="{Binding Background}" MinWidth="170">
+        <Border.LayoutTransform>
+            <ScaleTransform ScaleX="{Binding Scale}" ScaleY="{Binding Scale}"/>
+        </Border.LayoutTransform>
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding ShowLogo}" Value="False"/>
+                                    <Condition Binding="{Binding ShowModel}" Value="False"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <Grid Margin="0,0,8,0" VerticalAlignment="Center" Visibility="{Binding ShowLogo, Converter={StaticResource BoolToVisibility}}">
+                    <Image Source="{Binding CustomLogo}" Height="16" Visibility="{Binding HasCustomLogo, Converter={StaticResource BoolToVisibility}}"/>
+                    <TextBlock Text="{Binding VendorName}" Foreground="{Binding VendorBrush}" FontWeight="Bold" FontSize="12"
+                               Visibility="{Binding HasCustomLogo, Converter={x:Static local:Converters.FalseToVisible}}"
+                               xmlns:local="clr-namespace:GpuTweak.App.Views"/>
+                </Grid>
+                <TextBlock Text="{Binding Model}" FontSize="12" FontWeight="SemiBold" Foreground="#DDFFFFFF" VerticalAlignment="Center"
+                           Visibility="{Binding ShowModel, Converter={StaticResource BoolToVisibility}}"/>
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding Rows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Label}" FontSize="12" Foreground="#99FFFFFF" VerticalAlignment="Bottom"/>
+                            <TextBlock Grid.Column="1" HorizontalAlignment="Right" Typography.NumeralAlignment="Tabular">
+                                <Run Text="{Binding Value, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" Foreground="White"/>
+                                <Run Text="{Binding Unit, Mode=OneWay}" FontSize="11" Foreground="#99FFFFFF"/>
+                            </TextBlock>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Border>
+</Window>
