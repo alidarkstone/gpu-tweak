@@ -101,7 +101,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public TuningLimits Limits { get; }
     public OverlayViewModel Overlay { get; }
     public string VendorName => Info.Vendor switch { GpuVendor.Nvidia => "NVIDIA", GpuVendor.Amd => "AMD", GpuVendor.Intel => "Intel", _ => "GPU" };
-    public string Subtitle => $"Sürücü {Info.DriverVersion} · {Info.VramBytes / (1024 * 1024 * 1024.0):0} GB VRAM";
+    public string Subtitle => $"Sürücü {Info.DriverVersion} · {Info.VramBytes / (1024 * 1024 * 1024.0):0} GB VRAM · GPU Tweak v{AppVersion}";
+    private static string AppVersion => typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "?";
     public bool IsCustomActive => !_active.IsStock;
     public string ActiveStateText => _active.IsStock ? "Varsayılan ayarlar" : _activeProfileName is { } n ? $"Aktif: {n}" : "Özel ayarlar aktif";
 
