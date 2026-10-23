@@ -16,7 +16,7 @@ namespace GpuTweak.App.Stress;
 /// which is the earliest sign of an unstable undervolt (it shows up well before a driver crash).
 /// </summary>
 /// <summary>What the live panel draws: the latest results and which threads have ever been wrong in this run.</summary>
-public sealed record StressSnapshot(uint[] Results, byte[] ErrorMask, long Checked, long Errors, StressPattern Pattern);
+public sealed record StressSnapshot(uint[] Results, byte[] ErrorMask, long Checked, long Errors, StressPattern Pattern, int[]? Image);
 
 public sealed class D3D11StressTest : IStressTest
 {
@@ -52,6 +52,53 @@ public sealed class D3D11StressTest : IStressTest
             Output[i] = Output[i] * 31u + result;
         }
         """;
+
+    /// <summary>Side of the animated preview image (pixels). One preview frame is drawn after every verified batch.</summary>
+    public const int ImageSize = 384;
+
+    /// <summary>
+    /// Animated Julia fractal shown in the live panel, so the user can see the card working.
+    /// It is not part of the verification; correctness is checked by the main shader.
+    /// </summary>
+    private const string VisualShader = """
+        cbuffer Visual : register(b1) { float Time; float3 Pad; };
+        RWStructuredBuffer<uint> Image : register(u1);
+
+        float3 Palette(float t)
+        {
+            // Smooth blue → violet → orange gradient.
+            return 0.5f + 0.5f * cos(6.28318f * (float3(0.62f, 0.55f, 0.50f) * t + float3(0.55f, 0.65f, 0.80f)));
+        }
+
+        [numthreads(16, 16, 1)]
+        void main(uint3 id : SV_DispatchThreadID)
+        {
+            const uint size = 384;
+            if (id.x >= size || id.y >= size) return;
+            float2 z = (float2(id.xy) / size - 0.5f) * float2(3.0f, 3.0f);
+            float angle = Time * 0.35f;
+            float2 c = 0.7885f * float2(cos(angle), sin(angle));
+            uint i = 0;
+            const uint maxIter = 160;
+            [loop] for (; i < maxIter && dot(z, z) < 16.0f; i++)
+                z = float2(z.x * z.x - z.y * z.y, 2.0f * z.x * z.y) + c;
+            float smoothIter = i < maxIter ? i + 1 - log2(max(1e-6f, log2(dot(z, z)) * 0.5f)) : 0;
+            float3 color = i < maxIter ? Palette(smoothIter * 0.035f + Time * 0.05f) * saturate(smoothIter / 12.0f) : float3(0.03f, 0.03f, 0.05f);
+            uint3 rgb = uint3(saturate(color) * 255.0f);
+            Image[id.y * size + id.x] = (rgb.r << 16) | (rgb.g << 8) | rgb.b;
+        }
+        """;
+
+    private ID3D11ComputeShader? _visual;
+    private ID3D11Buffer? _image, _imageStaging, _visualConstants;
+    private ID3D11UnorderedAccessView? _imageView;
+    private readonly Stopwatch _clock = Stopwatch.StartNew();
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct VisualParams
+    {
+        public float Time, Pad0, Pad1, Pad2;
+    }
 
     private ID3D11Device? _device;
     private ID3D11DeviceContext? _context;
@@ -121,11 +168,15 @@ public sealed class D3D11StressTest : IStressTest
                 }
                 else
                 {
-                    const int passes = 8;
-                    var start = watch.Elapsed;
-                    if (!Verify(passes, out var reason)) return StressResult.Fail(reason);
-                    busySeconds += (watch.Elapsed - start).TotalSeconds;
-                    work += (double)passes * ThreadCount * _iterations;
+                    // Four small batches instead of one big one, so the preview updates about 10 times a second.
+                    const int passes = 2;
+                    for (var batch = 0; batch < 4; batch++)
+                    {
+                        var start = watch.Elapsed;
+                        if (!Verify(passes, out var reason)) return StressResult.Fail(reason);
+                        busySeconds += (watch.Elapsed - start).TotalSeconds;
+                        work += (double)passes * ThreadCount * _iterations;
+                    }
                 }
                 segment++;
             }
@@ -158,9 +209,40 @@ public sealed class D3D11StressTest : IStressTest
         if (mask is not null) _errorMask = mask;
         _checked += result.Length;
         _errors += errors;
-        Snapshot = new StressSnapshot(result, _errorMask, _checked, _errors, _pattern);
+        Snapshot = new StressSnapshot(result, _errorMask, _checked, _errors, _pattern, DrawPreview());
         reason = errors == 0 ? "" : $"{errors:N0} hesap hatası";
         return errors == 0;
+    }
+
+    private int[]? DrawPreview()
+    {
+        if (_visual is null) return null;
+        try
+        {
+            var context = _context!;
+            var visual = new VisualParams { Time = (float)_clock.Elapsed.TotalSeconds };
+            context.UpdateSubresource(in visual, _visualConstants!);
+            context.CSSetShader(_visual);
+            context.CSSetUnorderedAccessView(1, _imageView);
+            context.CSSetConstantBuffer(1, _visualConstants);
+            context.Dispatch((ImageSize + 15) / 16, (ImageSize + 15) / 16, 1);
+            context.CopyResource(_imageStaging!, _image!);
+            var mapped = context.Map(_imageStaging!, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+            try
+            {
+                var image = new int[ImageSize * ImageSize];
+                Marshal.Copy(mapped.DataPointer, image, 0, image.Length);
+                return image;
+            }
+            finally
+            {
+                context.Unmap(_imageStaging!, 0);
+            }
+        }
+        catch (Exception e) when (e is SharpGenException or COMException)
+        {
+            return null; // the preview is cosmetic; the main check reports real failures
+        }
     }
 
     private uint[]? _expectedCache;
@@ -261,6 +343,34 @@ public sealed class D3D11StressTest : IStressTest
         _staging = _device.CreateBuffer(new BufferDescription(size, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read, ResourceOptionFlags.None, 0));
         _constants = _device.CreateBuffer(new BufferDescription((uint)Marshal.SizeOf<Params>(), BindFlags.ConstantBuffer, ResourceUsage.Default));
         _view = _device.CreateUnorderedAccessView(_output, new UnorderedAccessViewDescription(_output, Format.Unknown, 0, ThreadCount));
+
+        CreatePreview();
+    }
+
+    /// <summary>The preview is cosmetic: if it cannot be created, the test still runs without it.</summary>
+    private void CreatePreview()
+    {
+        try
+        {
+            CreatePreviewResources();
+        }
+        catch (Exception e) when (e is SharpGenException or COMException or InvalidOperationException)
+        {
+            _visual?.Dispose();
+            _visual = null;
+        }
+    }
+
+    private void CreatePreviewResources()
+    {
+        var device = _device!;
+        var visualBytecode = Compiler.Compile(VisualShader, "main", "preview.hlsl", "cs_5_0", ShaderFlags.OptimizationLevel3, EffectFlags.None);
+        _visual = device.CreateComputeShader(visualBytecode.Span);
+        const uint pixels = ImageSize * ImageSize;
+        _image = device.CreateBuffer(new BufferDescription(pixels * sizeof(uint), BindFlags.UnorderedAccess, ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.BufferStructured, sizeof(uint)));
+        _imageStaging = device.CreateBuffer(new BufferDescription(pixels * sizeof(uint), BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read, ResourceOptionFlags.None, 0));
+        _visualConstants = device.CreateBuffer(new BufferDescription((uint)Marshal.SizeOf<VisualParams>(), BindFlags.ConstantBuffer, ResourceUsage.Default));
+        _imageView = device.CreateUnorderedAccessView(_image, new UnorderedAccessViewDescription(_image, Format.Unknown, 0, pixels));
     }
 
     /// <summary>After a driver reset (TDR) the device is gone; build a fresh one so the next step can run.</summary>
@@ -287,6 +397,11 @@ public sealed class D3D11StressTest : IStressTest
 
     private void Release()
     {
+        _imageView?.Dispose(); _imageView = null;
+        _visualConstants?.Dispose(); _visualConstants = null;
+        _imageStaging?.Dispose(); _imageStaging = null;
+        _image?.Dispose(); _image = null;
+        _visual?.Dispose(); _visual = null;
         _view?.Dispose(); _view = null;
         _constants?.Dispose(); _constants = null;
         _staging?.Dispose(); _staging = null;

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using GpuTweak.App.Stress;
 using GpuTweak.Core.AutoTune;
 using GpuTweak.Core.Models;
@@ -13,7 +14,7 @@ public sealed record TuneStepRow(string Label, bool Passed, string Result, strin
 /// <summary>Live view of an auto-tune run: GPU result map, sensor history and per-step results.</summary>
 public sealed class TuneMonitorViewModel : ObservableObject
 {
-    private const int MapPixels = D3D11StressTest.MapSize / 2;
+    private const int MapPixels = D3D11StressTest.ImageSize;
     private const int HistoryLength = 120;
     public const double ChartWidth = 264, ChartHeight = 70;
 
@@ -22,9 +23,12 @@ public sealed class TuneMonitorViewModel : ObservableObject
     private StressSnapshot? _drawn;
     private DateTimeOffset _startedAt;
 
+    private readonly DispatcherTimer _frameTimer = new() { Interval = TimeSpan.FromMilliseconds(80) };
+
     public TuneMonitorViewModel()
     {
         ErrorMap = new WriteableBitmap(MapPixels, MapPixels, 96, 96, PixelFormats.Bgr32, null);
+        _frameTimer.Tick += (_, _) => DrawMap();
     }
 
     public WriteableBitmap ErrorMap { get; }
@@ -59,9 +63,15 @@ public sealed class TuneMonitorViewModel : ObservableObject
         HasErrors = false;
         PatternText = "";
         Clear();
+        _frameTimer.Start();
     }
 
-    public void Stop() => _stress = null;
+    public void Stop()
+    {
+        _frameTimer.Stop();
+        DrawMap();
+        _stress = null;
+    }
 
     public void AddStep(TuneStep step) => Steps.Add(new TuneStepRow(
         step.Label,
@@ -85,8 +95,6 @@ public sealed class TuneMonitorViewModel : ObservableObject
         ClockPoints = Chart(h => h.CoreClockMHz, 0, 3300);
         TemperaturePoints = Chart(h => h.TemperatureC, 20, 100);
         PowerPoints = Chart(h => h.PowerW, 0, Math.Max(100, s.PowerLimitW ?? 400));
-
-        DrawMap();
     }
 
     private PointCollection Chart(Func<GpuTelemetry, double?> value, double min, double max)
@@ -116,29 +124,26 @@ public sealed class TuneMonitorViewModel : ObservableObject
         PatternText = snapshot.Pattern == StressPattern.Heavy ? "Ağır yük" : snapshot.Pattern == StressPattern.Transient ? "Dalgalı yük" : "Karışık yük";
         HasErrors = snapshot.Errors > 0;
         ErrorsText = snapshot.Errors == 0
-            ? $"Hatalı hesap yok · {snapshot.Checked:N0} sonuç kontrol edildi"
-            : $"{snapshot.Errors:N0} hatalı hesap · {snapshot.Checked:N0} sonuç kontrol edildi";
+            ? $"✓ Görüntü temiz, hatalı hesap yok ({snapshot.Checked:N0} sonuç kontrol edildi)"
+            : $"✗ {snapshot.Errors:N0} hatalı hesap bulundu. Bu ayar kararsız, program bir adım geri gidecek.";
 
-        // Each pixel stands for 2×2 GPU threads. Correct results are drawn as blue noise derived from the value
-        // itself; any thread that was ever wrong in this run is drawn red and stays red.
-        var pixels = new int[MapPixels * MapPixels];
-        const int size = D3D11StressTest.MapSize;
-        for (var y = 0; y < MapPixels; y++)
+        // The animated preview the card is rendering, with every thread that computed a wrong result
+        // marked as a red spark on top (it stays for the rest of this step).
+        var pixels = snapshot.Image is { Length: MapPixels * MapPixels } image ? (int[])image.Clone() : new int[MapPixels * MapPixels];
+        if (snapshot.Errors > 0)
         {
-            for (var x = 0; x < MapPixels; x++)
+            const int size = D3D11StressTest.MapSize;
+            for (var i = 0; i < snapshot.ErrorMask.Length; i++)
             {
-                var i = y * 2 * size + x * 2;
-                var wrong = snapshot.ErrorMask[i] | snapshot.ErrorMask[i + 1] | snapshot.ErrorMask[i + size] | snapshot.ErrorMask[i + size + 1];
-                if (wrong != 0)
+                if (snapshot.ErrorMask[i] == 0) continue;
+                var cx = (i % size) * MapPixels / size;
+                var cy = (i / size) * MapPixels / size;
+                for (var dy = -1; dy <= 1; dy++)
+                for (var dx = -1; dx <= 1; dx++)
                 {
-                    pixels[y * MapPixels + x] = 0xFF3B30;
-                    continue;
+                    int x = cx + dx, y = cy + dy;
+                    if (x >= 0 && y >= 0 && x < MapPixels && y < MapPixels) pixels[y * MapPixels + x] = 0xFF3B30;
                 }
-                var v = snapshot.Results[i];
-                var r = 10 + (int)(v & 0x1F);
-                var g = 30 + (int)((v >> 8) & 0x3F);
-                var b = 70 + (int)((v >> 16) & 0x7F);
-                pixels[y * MapPixels + x] = (r << 16) | (g << 8) | b;
             }
         }
         ErrorMap.WritePixels(new Int32Rect(0, 0, MapPixels, MapPixels), pixels, MapPixels * 4, 0);

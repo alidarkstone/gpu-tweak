@@ -16,14 +16,14 @@
             <!-- GPU result map -->
             <StackPanel Width="260">
                 <Grid>
-                    <TextBlock Text="GPU hesap haritası" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock Text="Test görüntüsü" Style="{StaticResource SectionTitle}"/>
                     <TextBlock Text="{Binding Monitor.PatternText}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                 </Grid>
                 <Grid Margin="0,4,0,0">
                     <Border CornerRadius="10" ClipToBounds="True" Background="#FF141416">
-                        <Image Source="{Binding Monitor.ErrorMap}" Width="260" Height="260" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                        <Image Source="{Binding Monitor.ErrorMap}" Width="260" Height="260" RenderOptions.BitmapScalingMode="HighQuality"/>
                     </Border>
-                    <TextBlock Text="Otomatik ayar başlayınca GPU'nun hesapları burada görünür" Style="{StaticResource Caption}" TextAlignment="Center"
+                    <TextBlock Text="Otomatik ayar başlayınca kartın çizdiği test animasyonu burada görünür" Style="{StaticResource Caption}" TextAlignment="Center"
                                HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24" Foreground="{StaticResource TertiaryTextBrush}"
                                Visibility="{Binding Monitor.HasMap, Converter={x:Static local:Converters.FalseToVisible}}"/>
                 </Grid>
@@ -41,7 +41,7 @@
                     <TextBlock Text="{Binding Monitor.ErrorsText}" TextWrapping="Wrap" FontSize="12"/>
                 </Border>
                 <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,0"
-                           Text="Her nokta bir hesap sonucu; hepsi doğru cevapla karşılaştırılır. Voltaj yetmezse hatalı noktalar kırmızı yanar."/>
+                           Text="Kart bu animasyonu çizerken arka planda milyonlarca hesap yapıyor ve her birinin doğruluğu kontrol ediliyor. Görüntü akıyor ve kutu yeşilse her şey yolunda. Hatalı hesaplar görüntünün üstünde kırmızı kıvılcım olarak çıkar."/>
             </StackPanel>
 
             <!-- Live sensor charts -->
