@@ -47,8 +47,8 @@ public sealed class NvmlBackend : IGpuBackend
 
     private TuningLimits ReadLimits()
     {
-        var hasCore = Nvml.DeviceGetGpcClkMinMaxVfOffset(_device, out var coreMin, out var coreMax) == Nvml.Return.Success;
-        var hasMem = Nvml.DeviceGetMemClkMinMaxVfOffset(_device, out var memMin, out var memMax) == Nvml.Return.Success;
+        var hasCore = TryGetOffsetRange(Nvml.ClockType.Graphics, out var coreMin, out var coreMax);
+        var hasMem = TryGetOffsetRange(Nvml.ClockType.Mem, out var memMin, out var memMax);
         Nvml.DeviceGetPowerManagementLimitConstraints(_device, out var powerMin, out var powerMax);
         Nvml.DeviceGetPowerManagementDefaultLimit(_device, out var powerDefault);
         Nvml.DeviceGetMaxClockInfo(_device, Nvml.ClockType.Graphics, out var maxClock);
@@ -91,8 +91,8 @@ public sealed class NvmlBackend : IGpuBackend
 
     public TuningSettings ReadCurrentSettings()
     {
-        Nvml.DeviceGetGpcClkVfOffset(_device, out var core);
-        Nvml.DeviceGetMemClkVfOffset(_device, out var mem);
+        var core = GetOffset(Nvml.ClockType.Graphics);
+        var mem = GetOffset(Nvml.ClockType.Mem);
         int? power = null;
         if (Nvml.DeviceGetPowerManagementLimit(_device, out var mw) == Nvml.Return.Success)
         {
@@ -107,8 +107,10 @@ public sealed class NvmlBackend : IGpuBackend
     {
         if (Limits.PowerMaxW > 0)
             Check(Nvml.DeviceSetPowerManagementLimit(_device, (uint)((settings.PowerLimitW ?? Limits.PowerDefaultW) * 1000)), "güç limiti");
-        Check(Nvml.DeviceSetGpcClkVfOffset(_device, settings.CoreOffsetMHz), "çekirdek offset");
-        Check(Nvml.DeviceSetMemClkVfOffset(_device, settings.MemoryOffsetMHz), "bellek offset");
+        if (Limits.CoreOffsetMaxMHz > Limits.CoreOffsetMinMHz)
+            Check(SetOffset(Nvml.ClockType.Graphics, settings.CoreOffsetMHz), "çekirdek offset");
+        if (Limits.MemoryOffsetMaxMHz > Limits.MemoryOffsetMinMHz)
+            Check(SetOffset(Nvml.ClockType.Mem, settings.MemoryOffsetMHz), "bellek offset");
 
         if (settings.MaxCoreClockMHz is { } maxClock)
             Check(Nvml.DeviceSetGpuLockedClocks(_device, (uint)Limits.CoreClockMinMHz, (uint)maxClock), "max clock kilidi");
@@ -136,8 +138,8 @@ public sealed class NvmlBackend : IGpuBackend
         // "Not supported" means that control does not exist on this card, so there is nothing to reset.
         void Try(Nvml.Return result, string what) { if (result is not (Nvml.Return.Success or Nvml.Return.NotSupported)) errors.Add($"{what}: {Nvml.ErrorString(result)}"); }
 
-        Try(Nvml.DeviceSetGpcClkVfOffset(_device, 0), "çekirdek offset");
-        Try(Nvml.DeviceSetMemClkVfOffset(_device, 0), "bellek offset");
+        Try(SetOffset(Nvml.ClockType.Graphics, 0), "çekirdek offset");
+        Try(SetOffset(Nvml.ClockType.Mem, 0), "bellek offset");
         if (Limits.PowerMaxW > 0) Try(Nvml.DeviceSetPowerManagementLimit(_device, (uint)(Limits.PowerDefaultW * 1000)), "güç limiti");
         Try(Nvml.DeviceResetGpuLockedClocks(_device), "max clock kilidi");
         for (uint fan = 0; fan < _fanCount; fan++) Try(Nvml.DeviceSetDefaultFanSpeed(_device, fan), "otomatik fan");
@@ -145,6 +147,80 @@ public sealed class NvmlBackend : IGpuBackend
         _manualFanPercent = null;
 
         if (errors.Count > 0) throw new GpuBackendException("Varsayılana dönülemedi: " + string.Join("; ", errors));
+    }
+
+    // ---- Clock offsets: the v1 struct API (R555+, required on RTX 50) with the older per-clock calls as fallback ----
+
+    private bool? _offsetsV1;
+
+    private bool UseOffsetsV1()
+    {
+        if (_offsetsV1 is { } known) return known;
+        try
+        {
+            var probe = Nvml.ClockOffset.For(Nvml.ClockType.Graphics);
+            _offsetsV1 = Nvml.DeviceGetClockOffsets(_device, ref probe) == Nvml.Return.Success;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            _offsetsV1 = false;
+        }
+        return _offsetsV1.Value;
+    }
+
+    private bool TryGetOffsetRange(Nvml.ClockType type, out int min, out int max)
+    {
+        min = max = 0;
+        if (UseOffsetsV1())
+        {
+            var info = Nvml.ClockOffset.For(type);
+            if (Nvml.DeviceGetClockOffsets(_device, ref info) != Nvml.Return.Success) return false;
+            (min, max) = (info.MinOffsetMHz, info.MaxOffsetMHz);
+            return max > min;
+        }
+        try
+        {
+            var result = type == Nvml.ClockType.Graphics
+                ? Nvml.DeviceGetGpcClkMinMaxVfOffset(_device, out min, out max)
+                : Nvml.DeviceGetMemClkMinMaxVfOffset(_device, out min, out max);
+            return result == Nvml.Return.Success && max > min;
+        }
+        catch (EntryPointNotFoundException) { return false; }
+    }
+
+    private int GetOffset(Nvml.ClockType type)
+    {
+        if (UseOffsetsV1())
+        {
+            var info = Nvml.ClockOffset.For(type);
+            return Nvml.DeviceGetClockOffsets(_device, ref info) == Nvml.Return.Success ? info.OffsetMHz : 0;
+        }
+        try
+        {
+            int value;
+            var result = type == Nvml.ClockType.Graphics
+                ? Nvml.DeviceGetGpcClkVfOffset(_device, out value)
+                : Nvml.DeviceGetMemClkVfOffset(_device, out value);
+            return result == Nvml.Return.Success ? value : 0;
+        }
+        catch (EntryPointNotFoundException) { return 0; }
+    }
+
+    private Nvml.Return SetOffset(Nvml.ClockType type, int offsetMHz)
+    {
+        if (UseOffsetsV1())
+        {
+            var info = Nvml.ClockOffset.For(type);
+            info.OffsetMHz = offsetMHz;
+            return Nvml.DeviceSetClockOffsets(_device, ref info);
+        }
+        try
+        {
+            return type == Nvml.ClockType.Graphics
+                ? Nvml.DeviceSetGpcClkVfOffset(_device, offsetMHz)
+                : Nvml.DeviceSetMemClkVfOffset(_device, offsetMHz);
+        }
+        catch (EntryPointNotFoundException) { return Nvml.Return.NotSupported; }
     }
 
     private static void Check(Nvml.Return result, string what)

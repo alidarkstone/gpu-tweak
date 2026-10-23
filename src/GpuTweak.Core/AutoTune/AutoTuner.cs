@@ -88,6 +88,9 @@ public sealed class AutoTuner
 
     private async Task<TuneResult> RunCoreAsync(TuneJournal? resume, CancellationToken ct)
     {
+        if (_backend.Limits.CoreOffsetMaxMHz <= 0)
+            return Fail("Sürücü bu kartta çekirdek offset ayarına izin vermiyor, bu yüzden undervolt yapılamıyor. Sürücüyü güncellemeyi dene.");
+
         _backend.ResetToStock();
         Report(TunePhase.Preparing, "Test hazırlanıyor (stok ayarlarda referans hesaplanıyor)…", 0.01);
         var prepare = await _stress.PrepareAsync(ct);

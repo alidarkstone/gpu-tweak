@@ -57,6 +57,26 @@ internal static class Nvml
         public ulong Used;
     }
 
+    /// <summary>nvmlClockOffset_v1_t (driver R555+). The older Gpc/MemClkVfOffset calls are not supported on newer cards such as the RTX 50 series.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct ClockOffset
+    {
+        public uint Version;
+        public ClockType Type;
+        public int PState;
+        public int OffsetMHz;
+        public int MinOffsetMHz;
+        public int MaxOffsetMHz;
+
+        public static ClockOffset For(ClockType type) => new()
+        {
+            // NVML_STRUCT_VERSION(ClockOffset, 1) = sizeof(struct) | (1 << 24)
+            Version = (uint)Marshal.SizeOf<ClockOffset>() | (1u << 24),
+            Type = type,
+            PState = 0, // P0: the full-performance state that games run in
+        };
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public struct Utilization
     {
@@ -92,6 +112,9 @@ internal static class Nvml
     [DllImport(Lib, EntryPoint = "nvmlDeviceGetMemClkVfOffset")] public static extern Return DeviceGetMemClkVfOffset(IntPtr device, out int offsetMHz);
     [DllImport(Lib, EntryPoint = "nvmlDeviceSetMemClkVfOffset")] public static extern Return DeviceSetMemClkVfOffset(IntPtr device, int offsetMHz);
     [DllImport(Lib, EntryPoint = "nvmlDeviceGetMemClkMinMaxVfOffset")] public static extern Return DeviceGetMemClkMinMaxVfOffset(IntPtr device, out int minMHz, out int maxMHz);
+
+    [DllImport(Lib, EntryPoint = "nvmlDeviceGetClockOffsets")] public static extern Return DeviceGetClockOffsets(IntPtr device, ref ClockOffset info);
+    [DllImport(Lib, EntryPoint = "nvmlDeviceSetClockOffsets")] public static extern Return DeviceSetClockOffsets(IntPtr device, ref ClockOffset info);
 
     [DllImport(Lib, EntryPoint = "nvmlDeviceSetGpuLockedClocks")] public static extern Return DeviceSetGpuLockedClocks(IntPtr device, uint minMHz, uint maxMHz);
     [DllImport(Lib, EntryPoint = "nvmlDeviceResetGpuLockedClocks")] public static extern Return DeviceResetGpuLockedClocks(IntPtr device);

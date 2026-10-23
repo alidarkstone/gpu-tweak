@@ -24,7 +24,7 @@ public sealed class D3D11StressTest : IStressTest
     private static readonly TimeSpan TargetDispatch = TimeSpan.FromMilliseconds(40);
 
     private const string Shader = """
-        cbuffer Params : register(b0) { uint Iterations; uint Seed; uint Pass; uint Pad; };
+        cbuffer Params : register(b0) { uint Iterations; uint Seed; uint Reserved0; uint Reserved1; };
         RWStructuredBuffer<uint> Output : register(u0);
 
         [numthreads(256, 1, 1)]
@@ -59,7 +59,7 @@ public sealed class D3D11StressTest : IStressTest
     [StructLayout(LayoutKind.Sequential)]
     private struct Params
     {
-        public uint Iterations, Seed, Pass, Pad;
+        public uint Iterations, Seed, Reserved0, Reserved1;
     }
 
     public Task<StressResult> PrepareAsync(CancellationToken cancellationToken) => Task.Run(() =>
