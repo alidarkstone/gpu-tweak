@@ -75,7 +75,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="999" Padding="{TemplateBinding Padding}">
+                    <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -136,7 +136,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
-                    <Border x:Name="Bg" CornerRadius="999" Padding="12,5" Background="{StaticResource FillBrush}">
+                    <Border x:Name="Bg" CornerRadius="7" Padding="12,5" Background="{StaticResource FillBrush}">
                         <ContentPresenter TextElement.Foreground="{StaticResource TextBrush}" TextElement.FontSize="12"/>
                     </Border>
                     <ControlTemplate.Triggers>

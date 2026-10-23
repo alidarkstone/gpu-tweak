@@ -30,7 +30,7 @@
                         <TextBlock Text="{Binding Info.ShortName}" Style="{StaticResource LargeTitle}"/>
                         <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Caption}"/>
                     </StackPanel>
-                    <Border Grid.Column="2" CornerRadius="999" Padding="12,6" Background="#1FFFFFFF" VerticalAlignment="Center">
+                    <Border Grid.Column="2" CornerRadius="8" Padding="12,6" Background="#1FFFFFFF" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
                                 <Ellipse.Style>
@@ -113,13 +113,13 @@
                                 <TextBlock Text="Hızlı modlar" Style="{StaticResource SectionTitle}"/>
                                 <TextBlock Style="{StaticResource Caption}" Text="Sadece güç limitini değiştirir; her kartta güvenlidir."/>
                                 <UniformGrid Columns="3" Margin="0,12,0,0">
-                                    <Button Style="{StaticResource PillButton}" Margin="0,0,8,0" Command="{Binding QuickModeCommand}" CommandParameter="quiet">
+                                    <Button Style="{StaticResource PillButton}" Padding="16,10" Margin="0,0,8,0" Command="{Binding QuickModeCommand}" CommandParameter="quiet">
                                         <StackPanel><TextBlock Text="Sessiz" HorizontalAlignment="Center"/><TextBlock Text="%80 güç" Style="{StaticResource Caption}" HorizontalAlignment="Center"/></StackPanel>
                                     </Button>
-                                    <Button Style="{StaticResource PillButton}" Margin="4,0" Command="{Binding QuickModeCommand}" CommandParameter="balanced">
+                                    <Button Style="{StaticResource PillButton}" Padding="16,10" Margin="4,0" Command="{Binding QuickModeCommand}" CommandParameter="balanced">
                                         <StackPanel><TextBlock Text="Dengeli" HorizontalAlignment="Center"/><TextBlock Text="Fabrika" Style="{StaticResource Caption}" HorizontalAlignment="Center"/></StackPanel>
                                     </Button>
-                                    <Button Style="{StaticResource PillButton}" Margin="8,0,0,0" Command="{Binding QuickModeCommand}" CommandParameter="max">
+                                    <Button Style="{StaticResource PillButton}" Padding="16,10" Margin="8,0,0,0" Command="{Binding QuickModeCommand}" CommandParameter="max">
                                         <StackPanel><TextBlock Text="Performans" HorizontalAlignment="Center"/><TextBlock Text="Maks. güç" Style="{StaticResource Caption}" HorizontalAlignment="Center"/></StackPanel>
                                     </Button>
                                 </UniformGrid>
