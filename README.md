@@ -19,6 +19,18 @@ RivaTuner/Afterburner yeteneklerinde ama çok daha sade, kartına zarar vermemek
 | Sıcaklık koruması | Özel ayarlar açıkken GPU 3 ölçüm üst üste 88°C'yi geçerse varsayılana dönülür. |
 | Stabil profil şartı | Sadece "stabil" işaretlenmiş profil açılışta otomatik uygulanabilir. |
 
+## Otomatik ayar (tatlı nokta)
+
+"Otomatik ayar" kartındaki **Başlat** düğmesi kartı kendi kendine test eder (~20 dk):
+
+1. Stok ayarlarda, hesap sonuçlarını kendisi doğrulayan bir DirectX 11 yükü çalıştırır ve referans sonuçları kaydeder.
+2. Kartın stokta ulaştığı en yüksek boost hızını ölçer ve max clock'u oraya kilitler, böylece hiçbir oyunda stoktan yavaş çalışmaz.
+3. Çekirdek offset'i 30 MHz'lik adımlarla artırır, yani aynı hızda voltajı düşürür. Her adım 1 dakika ağır ve dalgalı yükle test edilir. Tek bir hesap hatası, sürücü sıfırlanması, 85°C üstü sıcaklık ya da %1'den fazla performans kaybı görülürse adım başarısız sayılır.
+4. Son geçen değerden 45 MHz güvenlik payı geri çekilir ve sonuç 5 dakika doğrulanır.
+5. Sonuç uygulanır ve "Otomatik UV" profili olarak kaydedilir. Birkaç gün oyunlarda sorunsuz giderse profili "Stabil" olarak işaretle.
+
+Test sırasında bilgisayar kilitlenirse bir sonraki açılışta program stok ayarlarla başlar. "Kaldığı yerden devam" denince kilitlenen değer kararsız sayılır.
+
 ## Undervolt nasıl yapılır (NVIDIA)
 
 1. "Undervolt (max clock kilidi)" anahtarını aç ve max clock'u kartının oyunda gördüğün boost değerine yakın bir yere koy.
@@ -59,6 +71,8 @@ NVIDIA/AMD logoları ticari marka olduğu için exe içinde gelmez; widget'ta ma
 
 - [x] NVIDIA: telemetri, clock/bellek offset, güç limiti, max clock kilidi (undervolt), fan
 - [x] Güvenlik katmanı, profiller, overlay widget, Apple tarzı arayüz
+- [x] Otomatik ayar: hata doğrulamalı stres testiyle undervolt tatlı noktası
+- [x] Ekran çözünürlüğüne göre otomatik ölçekleme (Ctrl + fare tekerleği ile yakınlaştırma)
 - [ ] FPS ve 1% low (PresentMon / ETW, enjeksiyonsuz)
 - [ ] Kaynaklı topluluk önerileri veritabanını doldurmak
 - [ ] AMD (ADLX)

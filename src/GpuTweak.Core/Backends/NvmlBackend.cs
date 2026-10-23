@@ -133,7 +133,8 @@ public sealed class NvmlBackend : IGpuBackend
     {
         // Best effort: try every reset even if one fails, then report the first failure.
         var errors = new List<string>();
-        void Try(Nvml.Return result, string what) { if (result != Nvml.Return.Success) errors.Add($"{what}: {Nvml.ErrorString(result)}"); }
+        // "Not supported" means that control does not exist on this card, so there is nothing to reset.
+        void Try(Nvml.Return result, string what) { if (result is not (Nvml.Return.Success or Nvml.Return.NotSupported)) errors.Add($"{what}: {Nvml.ErrorString(result)}"); }
 
         Try(Nvml.DeviceSetGpcClkVfOffset(_device, 0), "çekirdek offset");
         Try(Nvml.DeviceSetMemClkVfOffset(_device, 0), "bellek offset");

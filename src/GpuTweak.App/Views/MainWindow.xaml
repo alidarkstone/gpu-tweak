@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:GpuTweak.App.Views"
-        Title="GPU Tweak" Width="1120" Height="800" MinWidth="940" MinHeight="620"
+        Title="GPU Tweak" Width="1120" Height="800" MinWidth="760" MinHeight="520"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource WindowBrush}"
         TextOptions.TextFormattingMode="Display"
@@ -108,6 +108,38 @@
 
                     <!-- Left column: tuning -->
                     <StackPanel>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Otomatik ayar" Style="{StaticResource SectionTitle}"/>
+                                        <TextBlock Style="{StaticResource Caption}"
+                                                   Text="Kartını kendisi test eder ve FPS kaybetmeden en düşük voltajlı, en serin ayarı bulur. Yaklaşık 20 dakika sürer; bu sırada oyun açma, bilgisayarı boşta bırak."/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="12,0,0,0">
+                                        <Button Style="{StaticResource PillButton}" Content="Kaldığı yerden devam" Margin="0,0,8,0" Command="{Binding ResumeTuneCommand}"
+                                                Visibility="{Binding HasPendingJournal, Converter={StaticResource BoolToVisibility}}"/>
+                                        <Button Style="{StaticResource PrimaryButton}" Content="Başlat" Command="{Binding StartTuneCommand}"
+                                                Visibility="{Binding IsTuning, Converter={x:Static local:Converters.FalseToVisible}}"/>
+                                        <Button Style="{StaticResource PillButton}" Content="Durdur" Command="{Binding StopTuneCommand}"
+                                                Visibility="{Binding IsTuning, Converter={StaticResource BoolToVisibility}}"/>
+                                    </StackPanel>
+                                </Grid>
+                                <ProgressBar Style="{StaticResource LevelBar}" Value="{Binding TuneProgress, Mode=OneWay}" Margin="0,14,0,0"
+                                             Visibility="{Binding IsTuning, Converter={StaticResource BoolToVisibility}}"/>
+                                <TextBlock Text="{Binding TuneMessage}" TextWrapping="Wrap" Margin="0,10,0,0"
+                                           Visibility="{Binding TuneMessage, Converter={x:Static local:Converters.NotEmptyToVisibility}}"/>
+                                <Border CornerRadius="10" Background="#2230D158" Padding="12,8" Margin="0,10,0,0"
+                                        Visibility="{Binding HasTuneResult, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="{Binding TuneSummary}" TextWrapping="Wrap" Foreground="{StaticResource GreenBrush}"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
                                 <TextBlock Text="Hızlı modlar" Style="{StaticResource SectionTitle}"/>

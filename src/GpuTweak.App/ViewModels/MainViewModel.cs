@@ -3,7 +3,9 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using GpuTweak.App.Stress;
 using GpuTweak.Core;
+using GpuTweak.Core.AutoTune;
 using GpuTweak.Core.Backends;
 using GpuTweak.Core.Models;
 using GpuTweak.Core.Profiles;
@@ -22,6 +24,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly SettingsStore _settingsStore;
     private readonly TelemetryService _telemetry;
     private readonly Dispatcher _dispatcher = Application.Current.Dispatcher;
+    private readonly string _dataDirectory;
+    private CancellationTokenSource? _tuneCts;
     private AppSettings _settings;
     private TuningSettings _active;
     private string? _activeProfileName;
@@ -29,6 +33,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public MainViewModel(IGpuBackend backend, string dataDirectory, CrashReport? crash)
     {
         _backend = backend;
+        _dataDirectory = dataDirectory;
         _crashGuard = new CrashGuard(dataDirectory);
         _profileStore = new ProfileStore(dataDirectory);
         _settingsStore = new SettingsStore(dataDirectory);
@@ -54,11 +59,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         foreach (var p in _profileStore.Profiles.Where(p => p.GpuName == Info.Name)) Profiles.Add(p);
         foreach (var s in CommunityProfileDb.Load(dataDirectory).ForGpu(Info)) Suggestions.Add(s);
 
-        ApplyCommand = new RelayCommand(Apply, () => !IsConfirmPending);
-        ResetCommand = new RelayCommand(ResetToStock, () => !IsConfirmPending);
+        ApplyCommand = new RelayCommand(Apply, () => !IsConfirmPending && !IsTuning);
+        ResetCommand = new RelayCommand(ResetToStock, () => !IsConfirmPending && !IsTuning);
         ConfirmCommand = new RelayCommand(() => _applyGuard.Confirm(), () => IsConfirmPending);
         RevertCommand = new RelayCommand(() => _applyGuard.Revert(), () => IsConfirmPending);
-        QuickModeCommand = new RelayCommand(p => ApplyQuickMode(p as string), _ => !IsConfirmPending);
+        QuickModeCommand = new RelayCommand(p => ApplyQuickMode(p as string), _ => !IsConfirmPending && !IsTuning);
+        StartTuneCommand = new RelayCommand(() => _ = StartTuneAsync(resume: false), () => !IsTuning && !IsConfirmPending);
+        ResumeTuneCommand = new RelayCommand(() => _ = StartTuneAsync(resume: true), () => !IsTuning && PendingJournal is not null);
+        StopTuneCommand = new RelayCommand(() => _tuneCts?.Cancel(), () => IsTuning);
         SaveProfileCommand = new RelayCommand(SaveProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
         LoadProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { LoadIntoEditor(u.Settings); _activeProfileName = u.Name; Status = $"\"{u.Name}\" yüklendi. Uygula'ya basınca karta yazılır."; } });
         DeleteProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { _profileStore.Delete(u.Name); Profiles.Remove(u); } });
@@ -66,6 +74,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ToggleAutoApplyCommand = new RelayCommand(p => ToggleAutoApply(p as UserProfile));
         UseSuggestionCommand = new RelayCommand(p => UseSuggestion(p as CommunityProfile));
         OpenSourceCommand = new RelayCommand(p => { if (p is CommunityProfile c) OpenUrl(c.SourceUrl); });
+
+        PendingJournal = TuneJournal.Load(dataDirectory);
+        if (PendingJournal is not null && crash is not null && PendingJournal.TestingOffsetMHz is { } crashedAt)
+            TuneMessage = $"Otomatik ayar testi +{crashedAt} MHz'de bilgisayarı kilitledi. Bu değer kararsız sayıldı; kaldığı yerden devam edebilirsin.";
+        else if (PendingJournal is not null)
+            TuneMessage = "Önceki otomatik ayar testi yarıda kaldı. Kaldığı yerden devam edebilirsin.";
 
         _telemetry = new TelemetryService(backend, TimeSpan.FromMilliseconds(_settings.PollIntervalMs));
         _telemetry.Sample += s => _dispatcher.BeginInvoke(() => OnSample(s));
@@ -138,6 +152,26 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _newProfileName = "";
     public string NewProfileName { get => _newProfileName; set => Set(ref _newProfileName, value); }
 
+    // ---- Auto tune ----
+    private bool _isTuning;
+    private double _tuneProgress;
+    private string? _tuneMessage;
+    private TuneResult? _tuneResult;
+    private TuneJournal? _pendingJournal;
+    public bool IsTuning { get => _isTuning; private set { if (Set(ref _isTuning, value)) CommandManager.InvalidateRequerySuggested(); } }
+    public double TuneProgress { get => _tuneProgress; private set => Set(ref _tuneProgress, value); }
+    public string? TuneMessage { get => _tuneMessage; private set => Set(ref _tuneMessage, value); }
+    public TuneJournal? PendingJournal { get => _pendingJournal; private set { if (Set(ref _pendingJournal, value)) OnPropertyChanged(nameof(HasPendingJournal)); } }
+    public bool HasPendingJournal => PendingJournal is not null;
+    public TuneResult? TuneResult { get => _tuneResult; private set { if (Set(ref _tuneResult, value)) OnPropertyChanged(nameof(HasTuneResult)); } }
+    public bool HasTuneResult => TuneResult is { Success: true };
+    public string TuneSummary => TuneResult is { Success: true } r
+        ? $"Güç {r.BaselinePowerW:0} W → {r.TunedPowerW:0} W   ·   Sıcaklık {r.BaselineTemperatureC:0}° → {r.TunedTemperatureC:0}°   ·   Performans %{100 * r.TunedScore / r.BaselineScore:0}"
+        : "";
+
+    public ICommand StartTuneCommand { get; }
+    public ICommand ResumeTuneCommand { get; }
+    public ICommand StopTuneCommand { get; }
     public ICommand ApplyCommand { get; }
     public ICommand ResetCommand { get; }
     public ICommand ConfirmCommand { get; }
@@ -335,12 +369,72 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         LoadLevel = (s.LoadPercent ?? 0) / 100.0;
         Overlay.Update(s);
 
-        if (_thermalGuard.ShouldRevert(s, IsCustomActive || IsConfirmPending))
+        // While tuning, the tuner watches temperature itself (with a lower limit) and resets between steps.
+        if (!IsTuning && _thermalGuard.ShouldRevert(s, IsCustomActive || IsConfirmPending))
         {
             if (IsConfirmPending) _applyGuard.Revert();
             ResetToStock();
             Status = $"GPU {_thermalGuard.LimitC:0}°C üstüne çıktı. Güvenlik için varsayılan ayarlara dönüldü.";
             StatusIsWarning = true;
+        }
+    }
+
+    private async Task StartTuneAsync(bool resume)
+    {
+        var journal = resume ? PendingJournal : null;
+        if (!resume) TuneJournal.Delete(_dataDirectory);
+        PendingJournal = null;
+        TuneResult = null;
+        IsTuning = true;
+        _tuneCts = new CancellationTokenSource();
+        // If the PC locks up mid-test, the next start must come up at stock and offer to resume.
+        _crashGuard.MarkCustomApplied("Otomatik ayar testi");
+
+        var progress = new Progress<TuneProgress>(p =>
+        {
+            TuneProgress = p.Fraction;
+            TuneMessage = p.Message;
+        });
+
+        TuneResult result;
+        try
+        {
+            using var stress = new D3D11StressTest();
+            var tuner = new AutoTuner(_backend, stress, _dataDirectory, progress: progress);
+            result = await Task.Run(() => tuner.RunAsync(journal, _tuneCts.Token));
+        }
+        catch (Exception e)
+        {
+            try { _backend.ResetToStock(); } catch (GpuBackendException) { }
+            result = Core.AutoTune.TuneResult.Failed(e.Message);
+        }
+        finally
+        {
+            IsTuning = false;
+            _tuneCts.Dispose();
+            _tuneCts = null;
+        }
+
+        TuneResult = result;
+        OnPropertyChanged(nameof(TuneSummary));
+        if (result is { Success: true, Settings: { } settings })
+        {
+            ApplyDirect(settings, "Otomatik UV");
+            LoadIntoEditor(settings);
+            var profile = new UserProfile("Otomatik UV", Info.Name, settings, CreatedAt: DateTimeOffset.Now);
+            _profileStore.Save(profile);
+            var existing = Profiles.FirstOrDefault(p => p.Name == profile.Name);
+            if (existing is not null) Profiles[Profiles.IndexOf(existing)] = profile;
+            else Profiles.Add(profile);
+            TuneMessage = result.Message + " Uygulandı ve \"Otomatik UV\" profili olarak kaydedildi.";
+            Status = "Birkaç gün oyunlarda sorunsuz giderse profili \"Stabil\" işaretle; o zaman açılışta otomatik uygulanabilir.";
+            StatusIsWarning = false;
+        }
+        else
+        {
+            SetActive(TuningSettings.Stock, null);
+            LoadIntoEditor(TuningSettings.Stock);
+            TuneMessage = result.Message;
         }
     }
 
@@ -354,6 +448,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         _telemetry.Dispose();
         _applyGuard.Dispose();
+        if (IsTuning)
+        {
+            _tuneCts?.Cancel();
+            try { _backend.ResetToStock(); _crashGuard.MarkStock(); } catch (GpuBackendException) { }
+        }
         // Leaving with an unconfirmed apply means nobody approved it.
         if (IsConfirmPending)
         {
