@@ -13,9 +13,8 @@ public partial class MainWindow : Window
     private readonly OverlayWindow _overlay;
     private GlobalHotKey? _hotKey;
 
-    // The layout is designed at this size; smaller screens get the whole UI scaled down to fit.
-    private const double DesignWidth = 1120, DesignHeight = 800;
-    private readonly ScaleTransform _zoom = new(1, 1);
+    // Layout design size (see the Viewbox in MainWindow.xaml); used to open the window with the right proportions.
+    private const double DesignWidth = 1400, DesignHeight = 960;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -25,8 +24,6 @@ public partial class MainWindow : Window
         _overlay = new OverlayWindow(viewModel.Overlay);
 
         FitToScreen();
-        Root.LayoutTransform = _zoom;
-        PreviewMouseWheel += OnPreviewMouseWheel;
 
         foreach (RadioButton corner in CornerPicker.Children)
             corner.IsChecked = (string)corner.Tag == viewModel.Overlay.Corner.ToString();
@@ -50,31 +47,15 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Window sizes are in DPI-independent units, so at 125–150% Windows scaling the design size can be
-    /// bigger than the screen. Shrink the window and the content together so everything stays visible.
+    /// Opens the window at most 90% of the screen with the layout's proportions. After that the
+    /// content scales with the window, whatever size the user drags it to.
     /// </summary>
     private void FitToScreen()
     {
         var area = SystemParameters.WorkArea;
         var scale = Math.Min(1.0, Math.Min(area.Width * 0.9 / DesignWidth, area.Height * 0.9 / DesignHeight));
-        SetZoom(scale);
         Width = DesignWidth * scale;
         Height = DesignHeight * scale;
-        MinWidth = Math.Min(MinWidth, Width);
-        MinHeight = Math.Min(MinHeight, Height);
-    }
-
-    private void SetZoom(double scale)
-    {
-        _zoom.ScaleX = _zoom.ScaleY = Math.Clamp(scale, 0.6, 1.3);
-    }
-
-    /// <summary>Ctrl + mouse wheel makes the interface larger or smaller, like in a browser.</summary>
-    private void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
-    {
-        if (Keyboard.Modifiers != ModifierKeys.Control) return;
-        SetZoom(_zoom.ScaleX + (e.Delta > 0 ? 0.05 : -0.05));
-        e.Handled = true;
     }
 
     private void OnCornerChecked(object sender, RoutedEventArgs e)

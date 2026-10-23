@@ -72,7 +72,7 @@ NVIDIA/AMD logoları ticari marka olduğu için exe içinde gelmez; widget'ta ma
 - [x] NVIDIA: telemetri, clock/bellek offset, güç limiti, max clock kilidi (undervolt), fan
 - [x] Güvenlik katmanı, profiller, overlay widget, Apple tarzı arayüz
 - [x] Otomatik ayar: hata doğrulamalı stres testiyle undervolt tatlı noktası
-- [x] Ekran çözünürlüğüne göre otomatik ölçekleme (Ctrl + fare tekerleği ile yakınlaştırma)
+- [x] Arayüz pencere boyutuna göre ölçeklenir, kaydırma gerekmez
 - [ ] FPS ve 1% low (PresentMon / ETW, enjeksiyonsuz)
 - [ ] Kaynaklı topluluk önerileri veritabanını doldurmak
 - [ ] AMD (ADLX)

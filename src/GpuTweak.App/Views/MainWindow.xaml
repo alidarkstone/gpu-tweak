@@ -2,14 +2,15 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:GpuTweak.App.Views"
-        Title="GPU Tweak" Width="1120" Height="800" MinWidth="760" MinHeight="520"
+        Title="GPU Tweak" Width="1120" Height="800" MinWidth="640" MinHeight="440"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource WindowBrush}"
         TextOptions.TextFormattingMode="Display"
         UseLayoutRounding="True">
     <Grid x:Name="Root">
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <Grid Margin="28,22,28,90">
+        <!-- The whole layout is designed at a fixed size and scaled to fit the window, so it never needs scrolling. -->
+        <Viewbox Stretch="Uniform" VerticalAlignment="Top">
+            <Grid Width="1400" Margin="28,22,28,28">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -101,12 +102,14 @@
 
                 <Grid Grid.Row="2">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="3*"/>
+                        <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="14"/>
-                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Left column: tuning -->
+                    <!-- Column 1: automatic tuning, quick modes, overlay -->
                     <StackPanel>
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
@@ -140,7 +143,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Style="{StaticResource Card}">
+
                             <StackPanel>
                                 <TextBlock Text="Hızlı modlar" Style="{StaticResource SectionTitle}"/>
                                 <TextBlock Style="{StaticResource Caption}" Text="Sadece güç limitini değiştirir; her kartta güvenlidir."/>
@@ -158,7 +161,55 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Style="{StaticResource Card}">
+
+                            <StackPanel>
+                                <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Enabled}">
+                                    <StackPanel>
+                                        <TextBlock Text="Oyun içi widget" Style="{StaticResource SectionTitle}" Margin="0"/>
+                                        <TextBlock Style="{StaticResource Caption}" Text="Kısayol: Ctrl + Shift + O. Pencereli ve kenarlıksız tam ekranda görünür."/>
+                                    </StackPanel>
+                                </CheckBox>
+
+                                <TextBlock Text="Konum" Margin="0,14,0,6"/>
+                                <Border CornerRadius="9" Background="{StaticResource FillBrush}" Padding="2">
+                                    <UniformGrid Columns="4" x:Name="CornerPicker">
+                                        <RadioButton Style="{StaticResource Segment}" Content="Sol üst" Tag="TopLeft" Checked="OnCornerChecked"/>
+                                        <RadioButton Style="{StaticResource Segment}" Content="Sağ üst" Tag="TopRight" Checked="OnCornerChecked"/>
+                                        <RadioButton Style="{StaticResource Segment}" Content="Sol alt" Tag="BottomLeft" Checked="OnCornerChecked"/>
+                                        <RadioButton Style="{StaticResource Segment}" Content="Sağ alt" Tag="BottomRight" Checked="OnCornerChecked"/>
+                                    </UniformGrid>
+                                </Border>
+
+                                <Grid Margin="0,14,0,0">
+                                    <TextBlock Text="Arka plan saydamlığı"/>
+                                    <TextBlock Style="{StaticResource SettingValue}" Text="{Binding Opacity, StringFormat={}{0:P0}}"/>
+                                </Grid>
+                                <Slider Minimum="0.2" Maximum="1" Value="{Binding Opacity}" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
+
+                                <Grid Margin="0,14,0,0">
+                                    <TextBlock Text="Boyut"/>
+                                    <TextBlock Style="{StaticResource SettingValue}" Text="{Binding Scale, StringFormat={}{0:P0}}"/>
+                                </Grid>
+                                <Slider Minimum="0.75" Maximum="1.5" Value="{Binding Scale}" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
+
+                                <TextBlock Text="Gösterilecekler" Margin="0,14,0,8"/>
+                                <WrapPanel>
+                                    <CheckBox Style="{StaticResource Chip}" Content="Logo" IsChecked="{Binding ShowLogo}"/>
+                                    <CheckBox Style="{StaticResource Chip}" Content="Model" IsChecked="{Binding ShowModel}"/>
+                                    <CheckBox Style="{StaticResource Chip}" Content="Yük" IsChecked="{Binding ShowLoad}"/>
+                                    <CheckBox Style="{StaticResource Chip}" Content="Sıcaklık" IsChecked="{Binding ShowTemperature}"/>
+                                    <CheckBox Style="{StaticResource Chip}" Content="Çekirdek" IsChecked="{Binding ShowCoreClock}"/>
+                                    <CheckBox Style="{StaticResource Chip}" Content="Bellek" IsChecked="{Binding ShowMemoryClock}"/>
+                                    <CheckBox Style="{StaticResource Chip}" Content="Güç" IsChecked="{Binding ShowPower}"/>
+                                    <CheckBox Style="{StaticResource Chip}" Content="VRAM" IsChecked="{Binding ShowVram}"/>
+                                    <CheckBox Style="{StaticResource Chip}" Content="Fan" IsChecked="{Binding ShowFan}"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Column 2: manual overclock / undervolt -->
+                    <StackPanel Grid.Column="2">
                             <StackPanel>
                                 <TextBlock Text="Overclock ve undervolt" Style="{StaticResource SectionTitle}"/>
                                 <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,14"
@@ -228,8 +279,8 @@
                         </Border>
                     </StackPanel>
 
-                    <!-- Right column: profiles + overlay -->
-                    <StackPanel Grid.Column="2">
+                    <!-- Column 3: profiles and community suggestions -->
+                    <StackPanel Grid.Column="4">
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
                                 <TextBlock Text="Profillerim" Style="{StaticResource SectionTitle}"/>
@@ -301,7 +352,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Style="{StaticResource Card}">
+
                             <StackPanel>
                                 <TextBlock Text="Topluluk önerileri" Style="{StaticResource SectionTitle}"/>
                                 <TextBlock Style="{StaticResource Caption}" Text="Her öneri kaynağıyla birlikte gelir ve önce yarı güçte yüklenir. Her çip farklıdır; başlangıç noktası olarak kullan."/>
@@ -335,55 +386,10 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Style="{StaticResource Card}" DataContext="{Binding Overlay}">
-                            <StackPanel>
-                                <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Enabled}">
-                                    <StackPanel>
-                                        <TextBlock Text="Oyun içi widget" Style="{StaticResource SectionTitle}" Margin="0"/>
-                                        <TextBlock Style="{StaticResource Caption}" Text="Kısayol: Ctrl + Shift + O. Pencereli ve kenarlıksız tam ekranda görünür."/>
-                                    </StackPanel>
-                                </CheckBox>
-
-                                <TextBlock Text="Konum" Margin="0,14,0,6"/>
-                                <Border CornerRadius="9" Background="{StaticResource FillBrush}" Padding="2">
-                                    <UniformGrid Columns="4" x:Name="CornerPicker">
-                                        <RadioButton Style="{StaticResource Segment}" Content="Sol üst" Tag="TopLeft" Checked="OnCornerChecked"/>
-                                        <RadioButton Style="{StaticResource Segment}" Content="Sağ üst" Tag="TopRight" Checked="OnCornerChecked"/>
-                                        <RadioButton Style="{StaticResource Segment}" Content="Sol alt" Tag="BottomLeft" Checked="OnCornerChecked"/>
-                                        <RadioButton Style="{StaticResource Segment}" Content="Sağ alt" Tag="BottomRight" Checked="OnCornerChecked"/>
-                                    </UniformGrid>
-                                </Border>
-
-                                <Grid Margin="0,14,0,0">
-                                    <TextBlock Text="Arka plan saydamlığı"/>
-                                    <TextBlock Style="{StaticResource SettingValue}" Text="{Binding Opacity, StringFormat={}{0:P0}}"/>
-                                </Grid>
-                                <Slider Minimum="0.2" Maximum="1" Value="{Binding Opacity}" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
-
-                                <Grid Margin="0,14,0,0">
-                                    <TextBlock Text="Boyut"/>
-                                    <TextBlock Style="{StaticResource SettingValue}" Text="{Binding Scale, StringFormat={}{0:P0}}"/>
-                                </Grid>
-                                <Slider Minimum="0.75" Maximum="1.5" Value="{Binding Scale}" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
-
-                                <TextBlock Text="Gösterilecekler" Margin="0,14,0,8"/>
-                                <WrapPanel>
-                                    <CheckBox Style="{StaticResource Chip}" Content="Logo" IsChecked="{Binding ShowLogo}"/>
-                                    <CheckBox Style="{StaticResource Chip}" Content="Model" IsChecked="{Binding ShowModel}"/>
-                                    <CheckBox Style="{StaticResource Chip}" Content="Yük" IsChecked="{Binding ShowLoad}"/>
-                                    <CheckBox Style="{StaticResource Chip}" Content="Sıcaklık" IsChecked="{Binding ShowTemperature}"/>
-                                    <CheckBox Style="{StaticResource Chip}" Content="Çekirdek" IsChecked="{Binding ShowCoreClock}"/>
-                                    <CheckBox Style="{StaticResource Chip}" Content="Bellek" IsChecked="{Binding ShowMemoryClock}"/>
-                                    <CheckBox Style="{StaticResource Chip}" Content="Güç" IsChecked="{Binding ShowPower}"/>
-                                    <CheckBox Style="{StaticResource Chip}" Content="VRAM" IsChecked="{Binding ShowVram}"/>
-                                    <CheckBox Style="{StaticResource Chip}" Content="Fan" IsChecked="{Binding ShowFan}"/>
-                                </WrapPanel>
-                            </StackPanel>
-                        </Border>
                     </StackPanel>
                 </Grid>
             </Grid>
-        </ScrollViewer>
+        </Viewbox>
 
         <!-- Bottom area: status toast and confirmation banner -->
         <StackPanel VerticalAlignment="Bottom" Margin="28,0,28,20">
