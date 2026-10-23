@@ -5,7 +5,9 @@ using GpuTweak.App.ViewModels;
 using GpuTweak.App.Views;
 using GpuTweak.Core;
 using GpuTweak.Core.Backends;
+using GpuTweak.Core.Localization;
 using GpuTweak.Core.Safety;
+using GpuTweak.Core.Settings;
 
 namespace GpuTweak.App;
 
@@ -20,6 +22,7 @@ public partial class App : Application
 
         var dataDirectory = DataPaths.Resolve();
         Directory.CreateDirectory(Path.Combine(dataDirectory, "logos"));
+        L.SetLanguage(new SettingsStore(dataDirectory).Load().Language);
 
         // Crash check must happen before anything touches the card.
         var crash = new CrashGuard(dataDirectory).BeginSession();
@@ -29,8 +32,8 @@ public partial class App : Application
         if (backend is null)
         {
             var answer = MessageBox.Show(
-                "Desteklenen bir NVIDIA ekran kartı bulunamadı (NVML yüklenemedi).\n\n" +
-                "AMD desteği bir sonraki sürümde geliyor. Arayüzü denemek için demo modunda açılsın mı?",
+                L.T("Desteklenen bir NVIDIA ekran kartı bulunamadı (NVML yüklenemedi).\n\n") +
+                L.T("AMD desteği bir sonraki sürümde geliyor. Arayüzü denemek için demo modunda açılsın mı?"),
                 "GPU Tweak", MessageBoxButton.YesNo, MessageBoxImage.Information);
             if (answer != MessageBoxResult.Yes)
             {
@@ -56,7 +59,7 @@ public partial class App : Application
 
     private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        MessageBox.Show(e.Exception.Message, "GPU Tweak – beklenmeyen hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        MessageBox.Show(e.Exception.Message, L.T("GPU Tweak – beklenmeyen hata"), MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
     }
 }

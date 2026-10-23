@@ -33,7 +33,13 @@
                         <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Caption}"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding IsMonitorVisible}" Content="Canlı panel" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                    <Border CornerRadius="9" Background="{StaticResource FillBrush}" Padding="2" Margin="0,0,16,0" VerticalAlignment="Center" ToolTip="Dil / Language">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Style="{StaticResource Segment}" Content="TR" IsChecked="{Binding IsTurkish, Mode=OneWay}" Command="{Binding SetLanguageCommand}" CommandParameter="tr"/>
+                            <RadioButton Style="{StaticResource Segment}" Content="EN" IsChecked="{Binding IsEnglish, Mode=OneWay}" Command="{Binding SetLanguageCommand}" CommandParameter="en"/>
+                        </StackPanel>
+                    </Border>
+                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding IsMonitorVisible}" local:Loc.Content="Canlı panel" Margin="0,0,16,0" VerticalAlignment="Center"/>
                     <Border CornerRadius="8" Padding="12,6" Background="#1FFFFFFF" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
@@ -65,48 +71,48 @@
                     <Border>
                         <StackPanel>
                             <Grid>
-                                <TextBlock Text="GPU sıcaklığı" Style="{StaticResource Caption}"/>
-                                <Button Style="{StaticResource LinkButton}" Content="Sıfırla" FontSize="11" Padding="4,0" Margin="0,-3,-6,0" HorizontalAlignment="Right"
-                                        Command="{Binding ResetTemperatureStatsCommand}" ToolTip="Min / Ort / Maks değerlerini sıfırla"/>
+                                <TextBlock local:Loc.Text="GPU sıcaklığı" Style="{StaticResource Caption}"/>
+                                <Button Style="{StaticResource LinkButton}" local:Loc.Content="Sıfırla" FontSize="11" Padding="4,0" Margin="0,-3,-6,0" HorizontalAlignment="Right"
+                                        Command="{Binding ResetTemperatureStatsCommand}" local:Loc.ToolTip="Min / Ort / Maks değerlerini sıfırla"/>
                             </Grid>
                             <TextBlock Text="{Binding Temperature}" Style="{StaticResource MetricValue}"/>
                             <ProgressBar Style="{StaticResource LevelBar}" Value="{Binding TemperatureLevel, Mode=OneWay}" Foreground="{StaticResource OrangeBrush}"/>
-                            <UniformGrid Columns="3" Margin="0,8,0,0" ToolTip="Program açıldığından (veya Sıfırla'ya basıldığından) beri">
+                            <UniformGrid Columns="3" Margin="0,8,0,0" local:Loc.ToolTip="Program açıldığından (veya Sıfırla'ya basıldığından) beri">
                                 <StackPanel><TextBlock Text="Min" Style="{StaticResource Caption}"/><TextBlock Text="{Binding TemperatureMin}" FontWeight="SemiBold"/></StackPanel>
-                                <StackPanel><TextBlock Text="Ort" Style="{StaticResource Caption}"/><TextBlock Text="{Binding TemperatureAvg}" FontWeight="SemiBold"/></StackPanel>
-                                <StackPanel><TextBlock Text="Maks" Style="{StaticResource Caption}"/><TextBlock Text="{Binding TemperatureMax}" FontWeight="SemiBold"/></StackPanel>
+                                <StackPanel><TextBlock local:Loc.Text="Ort" Style="{StaticResource Caption}"/><TextBlock Text="{Binding TemperatureAvg}" FontWeight="SemiBold"/></StackPanel>
+                                <StackPanel><TextBlock local:Loc.Text="Maks" Style="{StaticResource Caption}"/><TextBlock Text="{Binding TemperatureMax}" FontWeight="SemiBold"/></StackPanel>
                             </UniformGrid>
                         </StackPanel>
                     </Border>
                     <Border>
                         <StackPanel>
-                            <TextBlock Text="Yük" Style="{StaticResource Caption}"/>
+                            <TextBlock local:Loc.Text="Yük" Style="{StaticResource Caption}"/>
                             <TextBlock Style="{StaticResource MetricValue}"><Run Text="{Binding Load, Mode=OneWay}"/><Run Text=" %" FontSize="14" Foreground="{StaticResource SecondaryTextBrush}"/></TextBlock>
                             <ProgressBar Style="{StaticResource LevelBar}" Value="{Binding LoadLevel, Mode=OneWay}"/>
                         </StackPanel>
                     </Border>
                     <Border>
                         <StackPanel>
-                            <TextBlock Text="Çekirdek" Style="{StaticResource Caption}"/>
+                            <TextBlock local:Loc.Text="Çekirdek" Style="{StaticResource Caption}"/>
                             <TextBlock Style="{StaticResource MetricValue}"><Run Text="{Binding CoreClock, Mode=OneWay}"/><Run Text=" MHz" FontSize="14" Foreground="{StaticResource SecondaryTextBrush}"/></TextBlock>
                         </StackPanel>
                     </Border>
                     <Border>
                         <StackPanel>
-                            <TextBlock Text="Bellek" Style="{StaticResource Caption}"/>
+                            <TextBlock local:Loc.Text="Bellek" Style="{StaticResource Caption}"/>
                             <TextBlock Style="{StaticResource MetricValue}"><Run Text="{Binding MemoryClock, Mode=OneWay}"/><Run Text=" MHz" FontSize="14" Foreground="{StaticResource SecondaryTextBrush}"/></TextBlock>
                         </StackPanel>
                     </Border>
                     <Border>
                         <StackPanel>
-                            <TextBlock Text="Güç" Style="{StaticResource Caption}"/>
+                            <TextBlock local:Loc.Text="Güç" Style="{StaticResource Caption}"/>
                             <TextBlock Style="{StaticResource MetricValue}"><Run Text="{Binding Power, Mode=OneWay}"/><Run Text=" W" FontSize="14" Foreground="{StaticResource SecondaryTextBrush}"/></TextBlock>
                             <ProgressBar Style="{StaticResource LevelBar}" Value="{Binding PowerLevel, Mode=OneWay}" Foreground="{StaticResource GreenBrush}"/>
                         </StackPanel>
                     </Border>
                     <Border>
                         <StackPanel>
-                            <TextBlock Text="VRAM · Fan" Style="{StaticResource Caption}"/>
+                            <TextBlock local:Loc.Text="VRAM · Fan" Style="{StaticResource Caption}"/>
                             <TextBlock Style="{StaticResource MetricValue}"><Run Text="{Binding Vram, Mode=OneWay}"/><Run Text=" GB" FontSize="14" Foreground="{StaticResource SecondaryTextBrush}"/></TextBlock>
                             <TextBlock Style="{StaticResource Caption}"><Run Text="Fan "/><Run Text="{Binding Fan, Mode=OneWay}"/><Run Text=" %"/></TextBlock>
                         </StackPanel>
@@ -132,16 +138,16 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Text="Otomatik ayar" Style="{StaticResource SectionTitle}"/>
+                                        <TextBlock local:Loc.Text="Otomatik ayar" Style="{StaticResource SectionTitle}"/>
                                         <TextBlock Style="{StaticResource Caption}"
-                                                   Text="Kartını kendisi test eder ve FPS kaybetmeden en düşük voltajlı, en serin ayarı bulur. Başka bir ayar yapmana gerek yok, sadece Başlat'a bas. Yaklaşık 20 dakika sürer; bu sırada oyun açma, bilgisayarı boşta bırak."/>
+                                                   local:Loc.Text="Kartını kendisi test eder ve FPS kaybetmeden en düşük voltajlı, en serin ayarı bulur. Başka bir ayar yapmana gerek yok, sadece Başlat'a bas. Yaklaşık 20 dakika sürer; bu sırada oyun açma, bilgisayarı boşta bırak."/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="12,0,0,0">
-                                        <Button Style="{StaticResource PillButton}" Content="Kaldığı yerden devam" Margin="0,0,8,0" Command="{Binding ResumeTuneCommand}"
+                                        <Button Style="{StaticResource PillButton}" local:Loc.Content="Kaldığı yerden devam" Margin="0,0,8,0" Command="{Binding ResumeTuneCommand}"
                                                 Visibility="{Binding HasPendingJournal, Converter={StaticResource BoolToVisibility}}"/>
-                                        <Button Style="{StaticResource PrimaryButton}" Content="Başlat" Command="{Binding StartTuneCommand}"
+                                        <Button Style="{StaticResource PrimaryButton}" local:Loc.Content="Başlat" Command="{Binding StartTuneCommand}"
                                                 Visibility="{Binding IsTuning, Converter={x:Static local:Converters.FalseToVisible}}"/>
-                                        <Button Style="{StaticResource PillButton}" Content="Durdur" Command="{Binding StopTuneCommand}"
+                                        <Button Style="{StaticResource PillButton}" local:Loc.Content="Durdur" Command="{Binding StopTuneCommand}"
                                                 Visibility="{Binding IsTuning, Converter={StaticResource BoolToVisibility}}"/>
                                     </StackPanel>
                                 </Grid>
@@ -158,17 +164,17 @@
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Hızlı modlar" Style="{StaticResource SectionTitle}"/>
-                                <TextBlock Style="{StaticResource Caption}" Text="Sadece güç limitini değiştirir; her kartta güvenlidir."/>
+                                <TextBlock local:Loc.Text="Hızlı modlar" Style="{StaticResource SectionTitle}"/>
+                                <TextBlock Style="{StaticResource Caption}" local:Loc.Text="Sadece güç limitini değiştirir; her kartta güvenlidir."/>
                                 <UniformGrid Columns="3" Margin="0,12,0,0">
                                     <Button Style="{StaticResource PillButton}" Padding="16,10" Margin="0,0,8,0" Command="{Binding QuickModeCommand}" CommandParameter="quiet">
-                                        <StackPanel><TextBlock Text="Sessiz" HorizontalAlignment="Center"/><TextBlock Text="%80 güç" Style="{StaticResource Caption}" HorizontalAlignment="Center"/></StackPanel>
+                                        <StackPanel><TextBlock local:Loc.Text="Sessiz" HorizontalAlignment="Center"/><TextBlock local:Loc.Text="%80 güç" Style="{StaticResource Caption}" HorizontalAlignment="Center"/></StackPanel>
                                     </Button>
                                     <Button Style="{StaticResource PillButton}" Padding="16,10" Margin="4,0" Command="{Binding QuickModeCommand}" CommandParameter="balanced">
-                                        <StackPanel><TextBlock Text="Dengeli" HorizontalAlignment="Center"/><TextBlock Text="Fabrika" Style="{StaticResource Caption}" HorizontalAlignment="Center"/></StackPanel>
+                                        <StackPanel><TextBlock local:Loc.Text="Dengeli" HorizontalAlignment="Center"/><TextBlock local:Loc.Text="Fabrika" Style="{StaticResource Caption}" HorizontalAlignment="Center"/></StackPanel>
                                     </Button>
                                     <Button Style="{StaticResource PillButton}" Padding="16,10" Margin="8,0,0,0" Command="{Binding QuickModeCommand}" CommandParameter="max">
-                                        <StackPanel><TextBlock Text="Performans" HorizontalAlignment="Center"/><TextBlock Text="Maks. güç" Style="{StaticResource Caption}" HorizontalAlignment="Center"/></StackPanel>
+                                        <StackPanel><TextBlock local:Loc.Text="Performans" HorizontalAlignment="Center"/><TextBlock local:Loc.Text="Maks. güç" Style="{StaticResource Caption}" HorizontalAlignment="Center"/></StackPanel>
                                     </Button>
                                 </UniformGrid>
                             </StackPanel>
@@ -178,42 +184,42 @@
                             <StackPanel>
                                 <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Enabled}">
                                     <StackPanel>
-                                        <TextBlock Text="Oyun içi widget" Style="{StaticResource SectionTitle}" Margin="0"/>
-                                        <TextBlock Style="{StaticResource Caption}" Text="Kısayol: Ctrl + Shift + O. Pencereli ve kenarlıksız tam ekranda görünür."/>
+                                        <TextBlock local:Loc.Text="Oyun içi widget" Style="{StaticResource SectionTitle}" Margin="0"/>
+                                        <TextBlock Style="{StaticResource Caption}" local:Loc.Text="Kısayol: Ctrl + Shift + O. Pencereli ve kenarlıksız tam ekranda görünür."/>
                                     </StackPanel>
                                 </CheckBox>
 
-                                <TextBlock Text="Konum" Margin="0,14,0,6"/>
+                                <TextBlock local:Loc.Text="Konum" Margin="0,14,0,6"/>
                                 <Border CornerRadius="9" Background="{StaticResource FillBrush}" Padding="2">
                                     <UniformGrid Columns="4" x:Name="CornerPicker">
-                                        <RadioButton Style="{StaticResource Segment}" Content="Sol üst" Tag="TopLeft" Checked="OnCornerChecked"/>
-                                        <RadioButton Style="{StaticResource Segment}" Content="Sağ üst" Tag="TopRight" Checked="OnCornerChecked"/>
-                                        <RadioButton Style="{StaticResource Segment}" Content="Sol alt" Tag="BottomLeft" Checked="OnCornerChecked"/>
-                                        <RadioButton Style="{StaticResource Segment}" Content="Sağ alt" Tag="BottomRight" Checked="OnCornerChecked"/>
+                                        <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Sol üst" Tag="TopLeft" Checked="OnCornerChecked"/>
+                                        <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Sağ üst" Tag="TopRight" Checked="OnCornerChecked"/>
+                                        <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Sol alt" Tag="BottomLeft" Checked="OnCornerChecked"/>
+                                        <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Sağ alt" Tag="BottomRight" Checked="OnCornerChecked"/>
                                     </UniformGrid>
                                 </Border>
 
                                 <Grid Margin="0,14,0,0">
-                                    <TextBlock Text="Arka plan saydamlığı"/>
+                                    <TextBlock local:Loc.Text="Arka plan saydamlığı"/>
                                     <TextBlock Style="{StaticResource SettingValue}" Text="{Binding Opacity, StringFormat={}{0:P0}}"/>
                                 </Grid>
                                 <Slider Minimum="0.2" Maximum="1" Value="{Binding Opacity}" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
 
                                 <Grid Margin="0,14,0,0">
-                                    <TextBlock Text="Boyut"/>
+                                    <TextBlock local:Loc.Text="Boyut"/>
                                     <TextBlock Style="{StaticResource SettingValue}" Text="{Binding Scale, StringFormat={}{0:P0}}"/>
                                 </Grid>
                                 <Slider Minimum="0.75" Maximum="1.5" Value="{Binding Scale}" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
 
-                                <TextBlock Text="Gösterilecekler" Margin="0,14,0,8"/>
+                                <TextBlock local:Loc.Text="Gösterilecekler" Margin="0,14,0,8"/>
                                 <WrapPanel>
                                     <CheckBox Style="{StaticResource Chip}" Content="Logo" IsChecked="{Binding ShowLogo}"/>
                                     <CheckBox Style="{StaticResource Chip}" Content="Model" IsChecked="{Binding ShowModel}"/>
-                                    <CheckBox Style="{StaticResource Chip}" Content="Yük" IsChecked="{Binding ShowLoad}"/>
-                                    <CheckBox Style="{StaticResource Chip}" Content="Sıcaklık" IsChecked="{Binding ShowTemperature}"/>
-                                    <CheckBox Style="{StaticResource Chip}" Content="Çekirdek" IsChecked="{Binding ShowCoreClock}"/>
-                                    <CheckBox Style="{StaticResource Chip}" Content="Bellek" IsChecked="{Binding ShowMemoryClock}"/>
-                                    <CheckBox Style="{StaticResource Chip}" Content="Güç" IsChecked="{Binding ShowPower}"/>
+                                    <CheckBox Style="{StaticResource Chip}" local:Loc.Content="Yük" IsChecked="{Binding ShowLoad}"/>
+                                    <CheckBox Style="{StaticResource Chip}" local:Loc.Content="Sıcaklık" IsChecked="{Binding ShowTemperature}"/>
+                                    <CheckBox Style="{StaticResource Chip}" local:Loc.Content="Çekirdek" IsChecked="{Binding ShowCoreClock}"/>
+                                    <CheckBox Style="{StaticResource Chip}" local:Loc.Content="Bellek" IsChecked="{Binding ShowMemoryClock}"/>
+                                    <CheckBox Style="{StaticResource Chip}" local:Loc.Content="Güç" IsChecked="{Binding ShowPower}"/>
                                     <CheckBox Style="{StaticResource Chip}" Content="VRAM" IsChecked="{Binding ShowVram}"/>
                                     <CheckBox Style="{StaticResource Chip}" Content="Fan" IsChecked="{Binding ShowFan}"/>
                                 </WrapPanel>
@@ -225,26 +231,26 @@
                     <StackPanel Grid.Column="2">
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Overclock ve undervolt" Style="{StaticResource SectionTitle}"/>
+                                <TextBlock local:Loc.Text="Overclock ve undervolt" Style="{StaticResource SectionTitle}"/>
                                 <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,14"
-                                           Text="Tüm değerler kartın vBIOS'unun izin verdiği aralıkla sınırlı. Voltaj hiçbir zaman fabrika değerinin üstüne çıkmaz."/>
+                                           local:Loc.Text="Tüm değerler kartın vBIOS'unun izin verdiği aralıkla sınırlı. Voltaj hiçbir zaman fabrika değerinin üstüne çıkmaz."/>
 
                                 <Grid>
-                                    <TextBlock Text="Çekirdek clock offset"/>
+                                    <TextBlock local:Loc.Text="Çekirdek clock offset"/>
                                     <TextBlock Style="{StaticResource SettingValue}"><Run Text="{Binding CoreOffset, Mode=OneWay, StringFormat={}{0:+0;-0;0}}"/><Run Text=" MHz"/></TextBlock>
                                 </Grid>
                                 <Slider Minimum="{Binding Limits.CoreOffsetMinMHz}" Maximum="{Binding Limits.CoreOffsetMaxMHz}" Value="{Binding CoreOffset}"
                                         TickFrequency="15" IsSnapToTickEnabled="True" SmallChange="15" LargeChange="60" IsEnabled="{Binding SupportsOffsets}"/>
 
                                 <Grid Margin="0,14,0,0">
-                                    <TextBlock Text="Bellek clock offset"/>
+                                    <TextBlock local:Loc.Text="Bellek clock offset"/>
                                     <TextBlock Style="{StaticResource SettingValue}"><Run Text="{Binding MemoryOffset, Mode=OneWay, StringFormat={}{0:+0;-0;0}}"/><Run Text=" MHz"/></TextBlock>
                                 </Grid>
                                 <Slider Minimum="{Binding Limits.MemoryOffsetMinMHz}" Maximum="{Binding Limits.MemoryOffsetMaxMHz}" Value="{Binding MemoryOffset}"
                                         TickFrequency="50" IsSnapToTickEnabled="True" SmallChange="50" LargeChange="250" IsEnabled="{Binding SupportsOffsets}"/>
 
                                 <Grid Margin="0,14,0,0">
-                                    <TextBlock Text="Güç limiti"/>
+                                    <TextBlock local:Loc.Text="Güç limiti"/>
                                     <TextBlock Style="{StaticResource SettingValue}"><Run Text="{Binding PowerLimit, Mode=OneWay}"/><Run Text=" W  "/><Run Text="{Binding PowerPercentText, Mode=OneWay}" Foreground="{StaticResource SecondaryTextBrush}"/></TextBlock>
                                 </Grid>
                                 <Slider Minimum="{Binding Limits.PowerMinW}" Maximum="{Binding Limits.PowerMaxW}" Value="{Binding PowerLimit}"
@@ -254,14 +260,14 @@
 
                                 <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding UseClockCap}">
                                     <StackPanel>
-                                        <TextBlock Text="Undervolt (max clock kilidi)"/>
+                                        <TextBlock local:Loc.Text="Undervolt (max clock kilidi)"/>
                                         <TextBlock Style="{StaticResource Caption}"
-                                                   Text="Max clock'u sabitle, sonra çekirdek offset'i artır. Kart aynı frekansa daha düşük voltajla ulaşır: daha serin, daha sessiz."/>
+                                                   local:Loc.Text="Max clock'u sabitle, sonra çekirdek offset'i artır. Kart aynı frekansa daha düşük voltajla ulaşır: daha serin, daha sessiz."/>
                                     </StackPanel>
                                 </CheckBox>
                                 <StackPanel Visibility="{Binding UseClockCap, Converter={StaticResource BoolToVisibility}}" Margin="0,10,0,0">
                                     <Grid>
-                                        <TextBlock Text="Max çekirdek clock"/>
+                                        <TextBlock local:Loc.Text="Max çekirdek clock"/>
                                         <TextBlock Style="{StaticResource SettingValue}"><Run Text="{Binding MaxClock, Mode=OneWay}"/><Run Text=" MHz"/></TextBlock>
                                     </Grid>
                                     <Slider Minimum="{Binding Limits.CoreClockMinMHz}" Maximum="{Binding Limits.CoreClockMaxMHz}" Value="{Binding MaxClock}"
@@ -272,8 +278,8 @@
 
                                 <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding ManualFan}" IsEnabled="{Binding SupportsFanControl}">
                                     <StackPanel>
-                                        <TextBlock Text="Manuel fan hızı"/>
-                                        <TextBlock Style="{StaticResource Caption}" Text="Kapalıyken fanları sürücü yönetir (önerilen)."/>
+                                        <TextBlock local:Loc.Text="Manuel fan hızı"/>
+                                        <TextBlock Style="{StaticResource Caption}" local:Loc.Text="Kapalıyken fanları sürücü yönetir (önerilen)."/>
                                     </StackPanel>
                                 </CheckBox>
                                 <StackPanel Visibility="{Binding ManualFan, Converter={StaticResource BoolToVisibility}}" Margin="0,10,0,0">
@@ -286,8 +292,8 @@
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-                                    <Button Style="{StaticResource PillButton}" Content="Varsayılana dön" Command="{Binding ResetCommand}" Margin="0,0,10,0"/>
-                                    <Button Style="{StaticResource PrimaryButton}" Content="Uygula" Command="{Binding ApplyCommand}" MinWidth="110"/>
+                                    <Button Style="{StaticResource PillButton}" local:Loc.Content="Varsayılana dön" Command="{Binding ResetCommand}" Margin="0,0,10,0"/>
+                                    <Button Style="{StaticResource PrimaryButton}" local:Loc.Content="Uygula" Command="{Binding ApplyCommand}" MinWidth="110"/>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
@@ -300,16 +306,16 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Oyun kararlılığı" Style="{StaticResource SectionTitle}" Margin="0"/>
-                                    <TextBlock Grid.Column="1" Style="{StaticResource Caption}" VerticalAlignment="Center"><Run Text="Şu an: "/><Run Text="{Binding Stability.CurrentGame, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/></TextBlock>
+                                    <TextBlock local:Loc.Text="Oyun kararlılığı" Style="{StaticResource SectionTitle}" Margin="0"/>
+                                    <TextBlock Grid.Column="1" Style="{StaticResource Caption}" VerticalAlignment="Center"><Run local:Loc.Text="Şu an: "/><Run Text="{Binding Stability.CurrentGame, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/></TextBlock>
                                 </Grid>
                                 <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,12"
-                                           Text="Oyun oynarken Windows kayıtlarını izler. Sürücü çökmesi, oyun çökmesi veya mavi ekran olursa ayarı bir adım geri çeker."/>
+                                           local:Loc.Text="Oyun oynarken Windows kayıtlarını izler. Sürücü çökmesi, oyun çökmesi veya mavi ekran olursa ayarı bir adım geri çeker."/>
 
                                 <UniformGrid Columns="3" Margin="-5,0,-5,0">
                                     <Border CornerRadius="10" Background="{StaticResource FillBrush}" Padding="12,8" Margin="5,0">
                                         <StackPanel>
-                                            <TextBlock Style="{StaticResource Caption}" Text="Sorunsuz oyun"/>
+                                            <TextBlock Style="{StaticResource Caption}" local:Loc.Text="Sorunsuz oyun"/>
                                             <TextBlock Text="{Binding Stability.CleanTime}" FontSize="20" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Border>
@@ -325,13 +331,13 @@
                                             </Style>
                                         </Border.Style>
                                         <StackPanel>
-                                            <TextBlock Style="{StaticResource Caption}" Text="Algılanan sorun"/>
+                                            <TextBlock Style="{StaticResource Caption}" local:Loc.Text="Algılanan sorun"/>
                                             <TextBlock Text="{Binding Stability.IncidentCount}" FontSize="20" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Border>
                                     <Border CornerRadius="10" Background="{StaticResource FillBrush}" Padding="12,8" Margin="5,0">
                                         <StackPanel>
-                                            <TextBlock Style="{StaticResource Caption}" Text="Oyun oturumu"/>
+                                            <TextBlock Style="{StaticResource Caption}" local:Loc.Text="Oyun oturumu"/>
                                             <TextBlock Text="{Binding Stability.SessionCount}" FontSize="20" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Border>
@@ -339,7 +345,7 @@
 
                                 <ProgressBar Style="{StaticResource LevelBar}" Value="{Binding Stability.CleanLevel, Mode=OneWay}" Foreground="{StaticResource GreenBrush}" Margin="0,12,0,0"/>
                                 <TextBlock Style="{StaticResource Caption}" Text="{Binding Stability.CleanGoal}" Margin="0,4,0,0"/>
-                                <Button Style="{StaticResource PrimaryButton}" Content="Profili &quot;Stabil&quot; işaretle" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                <Button Style="{StaticResource PrimaryButton}" local:Loc.Content="Profili &quot;Stabil&quot; işaretle" HorizontalAlignment="Left" Margin="0,8,0,0"
                                         Command="{Binding MarkStableCommand}" Visibility="{Binding CanMarkStable, Converter={StaticResource BoolToVisibility}}"/>
 
                                 <ItemsControl ItemsSource="{Binding Stability.Recent}" Margin="0,12,0,0">
@@ -357,8 +363,8 @@
                                 <Rectangle Height="1" Fill="{StaticResource SeparatorBrush}" Margin="0,14"/>
                                 <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutoFixStability}">
                                     <StackPanel>
-                                        <TextBlock Text="Sorun olunca otomatik düzelt"/>
-                                        <TextBlock Style="{StaticResource Caption}" Text="Kapalıyken sadece kaydeder ve öneri gösterir."/>
+                                        <TextBlock local:Loc.Text="Sorun olunca otomatik düzelt"/>
+                                        <TextBlock Style="{StaticResource Caption}" local:Loc.Text="Kapalıyken sadece kaydeder ve öneri gösterir."/>
                                     </StackPanel>
                                 </CheckBox>
                                 <Grid Margin="0,12,0,0">
@@ -367,8 +373,8 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,10,0"
-                                               Text="Oyunda titreyen doku, renkli nokta veya çizgi gördüysen bas. Oyun içindeyken Ctrl+Shift+A da olur."/>
-                                    <Button Grid.Column="1" Style="{StaticResource PillButton}" Content="Artifact gördüm" Command="{Binding ReportArtifactCommand}"/>
+                                               local:Loc.Text="Oyunda titreyen doku, renkli nokta veya çizgi gördüysen bas. Oyun içindeyken Ctrl+Shift+A da olur."/>
+                                    <Button Grid.Column="1" Style="{StaticResource PillButton}" local:Loc.Content="Artifact gördüm" Command="{Binding ReportArtifactCommand}"/>
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -378,16 +384,16 @@
                     <StackPanel Grid.Column="4">
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Profillerim" Style="{StaticResource SectionTitle}"/>
-                                <TextBlock Style="{StaticResource Caption}" Text="Sadece stabil işaretlenen profiller açılışta otomatik uygulanabilir."/>
+                                <TextBlock local:Loc.Text="Profillerim" Style="{StaticResource SectionTitle}"/>
+                                <TextBlock Style="{StaticResource Caption}" local:Loc.Text="Sadece stabil işaretlenen profiller açılışta otomatik uygulanabilir."/>
                                 <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding StartWithWindows}" Margin="0,12,0,0">
                                     <StackPanel>
-                                        <TextBlock Text="Windows ile başlat"/>
+                                        <TextBlock local:Loc.Text="Windows ile başlat"/>
                                         <TextBlock Style="{StaticResource Caption}"
-                                                   Text="Bilgisayar açılınca program küçültülmüş başlar ve &quot;Otomatik: açık&quot; profili yeniden uygular. Ekran kartı ayarları her yeniden başlatmada sıfırlandığı için gerekli."/>
+                                                   local:Loc.Text="Bilgisayar açılınca program küçültülmüş başlar ve &quot;Otomatik: açık&quot; profili yeniden uygular. Ekran kartı ayarları her yeniden başlatmada sıfırlandığı için gerekli."/>
                                     </StackPanel>
                                 </CheckBox>
-                                <Button Style="{StaticResource LinkButton}" Content="Ayarların kaydedildiği klasörü aç" HorizontalAlignment="Left" Margin="-6,6,0,0"
+                                <Button Style="{StaticResource LinkButton}" local:Loc.Content="Ayarların kaydedildiği klasörü aç" HorizontalAlignment="Left" Margin="-6,6,0,0"
                                         Command="{Binding OpenDataFolderCommand}" ToolTip="{Binding DataFolder}"/>
                                 <ItemsControl ItemsSource="{Binding Profiles}" Margin="0,10,0,0">
                                     <ItemsControl.ItemTemplate>
@@ -405,10 +411,10 @@
                                                         </TextBlock>
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                        <Button Style="{StaticResource LinkButton}" Content="Yükle"
+                                                        <Button Style="{StaticResource LinkButton}" local:Loc.Content="Yükle"
                                                                 Command="{Binding DataContext.LoadProfileCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
                                                         <Button Command="{Binding DataContext.ToggleStableCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
-                                                                ToolTip="Oyunlarda test ettikten sonra stabil olarak işaretle">
+                                                                local:Loc.ToolTip="Oyunlarda test ettikten sonra stabil olarak işaretle">
                                                             <Button.Style>
                                                                 <Style TargetType="Button" BasedOn="{StaticResource LinkButton}">
                                                                     <Setter Property="Content" Value="Stabil değil"/>
@@ -423,7 +429,7 @@
                                                             </Button.Style>
                                                         </Button>
                                                         <Button Command="{Binding DataContext.ToggleAutoApplyCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
-                                                                ToolTip="Uygulama açılınca bu profili uygula">
+                                                                local:Loc.ToolTip="Uygulama açılınca bu profili uygula">
                                                             <Button.Style>
                                                                 <Style TargetType="Button" BasedOn="{StaticResource LinkButton}">
                                                                     <Setter Property="Content" Value="Otomatik: kapalı"/>
@@ -437,7 +443,7 @@
                                                                 </Style>
                                                             </Button.Style>
                                                         </Button>
-                                                        <Button Style="{StaticResource LinkButton}" Content="Sil" Foreground="{StaticResource RedBrush}"
+                                                        <Button Style="{StaticResource LinkButton}" local:Loc.Content="Sil" Foreground="{StaticResource RedBrush}"
                                                                 Command="{Binding DataContext.DeleteProfileCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
                                                     </StackPanel>
                                                 </Grid>
@@ -450,8 +456,8 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBox Text="{Binding NewProfileName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Profil adı"/>
-                                    <Button Grid.Column="1" Style="{StaticResource PillButton}" Content="Mevcut ayarları kaydet" Margin="8,0,0,0" Command="{Binding SaveProfileCommand}"/>
+                                    <TextBox Text="{Binding NewProfileName, UpdateSourceTrigger=PropertyChanged}" local:Loc.ToolTip="Profil adı"/>
+                                    <Button Grid.Column="1" Style="{StaticResource PillButton}" local:Loc.Content="Mevcut ayarları kaydet" Margin="8,0,0,0" Command="{Binding SaveProfileCommand}"/>
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -459,24 +465,24 @@
                         <!-- Silicon: what the auto-tune measured on this chip -->
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Silikon skoru" Style="{StaticResource SectionTitle}"/>
+                                <TextBlock local:Loc.Text="Silikon skoru" Style="{StaticResource SectionTitle}"/>
                                 <TextBlock Style="{StaticResource Caption}" Text="{Binding SiliconText}" Margin="0,0,0,0"/>
                                 <UniformGrid Columns="3" Margin="-5,12,-5,0" Visibility="{Binding HasSilicon, Converter={StaticResource BoolToVisibility}}">
                                     <Border CornerRadius="10" Background="{StaticResource FillBrush}" Padding="12,8" Margin="5,0">
                                         <StackPanel>
-                                            <TextBlock Style="{StaticResource Caption}" Text="Testte kaldırdı"/>
+                                            <TextBlock Style="{StaticResource Caption}" local:Loc.Text="Testte kaldırdı"/>
                                             <TextBlock Text="{Binding SiliconHeadroom}" FontSize="20" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Border>
                                     <Border CornerRadius="10" Background="{StaticResource FillBrush}" Padding="12,8" Margin="5,0">
                                         <StackPanel>
-                                            <TextBlock Style="{StaticResource Caption}" Text="Günlük ayar"/>
+                                            <TextBlock Style="{StaticResource Caption}" local:Loc.Text="Günlük ayar"/>
                                             <TextBlock Text="{Binding SiliconDaily}" FontSize="20" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Border>
                                     <Border CornerRadius="10" Background="{StaticResource FillBrush}" Padding="12,8" Margin="5,0">
                                         <StackPanel>
-                                            <TextBlock Style="{StaticResource Caption}" Text="Oyunda kararlı"/>
+                                            <TextBlock Style="{StaticResource Caption}" local:Loc.Text="Oyunda kararlı"/>
                                             <TextBlock Text="{Binding SiliconGame}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
                                     </Border>
@@ -486,10 +492,10 @@
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Topluluk önerileri" Style="{StaticResource SectionTitle}"/>
-                                <TextBlock Style="{StaticResource Caption}" Text="Her öneri kaynağıyla birlikte gelir ve önce yarı güçte yüklenir. Her çip farklıdır; başlangıç noktası olarak kullan."/>
+                                <TextBlock local:Loc.Text="Topluluk önerileri" Style="{StaticResource SectionTitle}"/>
+                                <TextBlock Style="{StaticResource Caption}" local:Loc.Text="Her öneri kaynağıyla birlikte gelir ve önce yarı güçte yüklenir. Her çip farklıdır; başlangıç noktası olarak kullan."/>
                                 <TextBlock Style="{StaticResource Caption}" Margin="0,10,0,0" Foreground="{StaticResource TertiaryTextBrush}"
-                                           Text="Bu model için henüz kaynaklı bir öneri yok."
+                                           local:Loc.Text="Bu model için henüz kaynaklı bir öneri yok."
                                            Visibility="{Binding HasSuggestions, Converter={x:Static local:Converters.FalseToVisible}}"/>
                                 <ItemsControl ItemsSource="{Binding Suggestions}" Margin="0,10,0,0">
                                     <ItemsControl.ItemTemplate>
@@ -505,9 +511,9 @@
                                                         <TextBlock Style="{StaticResource Caption}" Text="{Binding SourceTitle}"/>
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <Button Style="{StaticResource LinkButton}" Content="Kaynak"
+                                                        <Button Style="{StaticResource LinkButton}" local:Loc.Content="Kaynak"
                                                                 Command="{Binding DataContext.OpenSourceCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
-                                                        <Button Style="{StaticResource LinkButton}" Content="Yükle"
+                                                        <Button Style="{StaticResource LinkButton}" local:Loc.Content="Yükle"
                                                                 Command="{Binding DataContext.UseSuggestionCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
                                                     </StackPanel>
                                                 </Grid>
@@ -551,12 +557,12 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Yeni ayarlar her şey yolunda mı?" FontWeight="SemiBold" Foreground="White"/>
-                        <TextBlock Foreground="#DDFFFFFF" FontSize="12"><Run Text="Onaylamazsan "/><Run Text="{Binding Countdown, Mode=OneWay}" FontWeight="SemiBold"/><Run Text=" saniye içinde otomatik geri alınacak."/></TextBlock>
+                        <TextBlock local:Loc.Text="Yeni ayarlar her şey yolunda mı?" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Foreground="#DDFFFFFF" FontSize="12"><Run local:Loc.Text="Onaylamazsan "/><Run Text="{Binding Countdown, Mode=OneWay}" FontWeight="SemiBold"/><Run local:Loc.Text=" saniye içinde otomatik geri alınacak."/></TextBlock>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Style="{StaticResource PillButton}" Background="#33FFFFFF" Foreground="White" Content="Geri al" Command="{Binding RevertCommand}" Margin="0,0,8,0"/>
-                        <Button Style="{StaticResource PillButton}" Background="White" Foreground="#FF0A84FF" Content="Koru" Command="{Binding ConfirmCommand}"/>
+                        <Button Style="{StaticResource PillButton}" Background="#33FFFFFF" Foreground="White" local:Loc.Content="Geri al" Command="{Binding RevertCommand}" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource PillButton}" Background="White" Foreground="#FF0A84FF" local:Loc.Content="Koru" Command="{Binding ConfirmCommand}"/>
                     </StackPanel>
                 </Grid>
             </Border>

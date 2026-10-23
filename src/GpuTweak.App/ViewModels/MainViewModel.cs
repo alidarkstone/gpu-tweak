@@ -8,6 +8,7 @@ using GpuTweak.App.Stress;
 using GpuTweak.Core;
 using GpuTweak.Core.AutoTune;
 using GpuTweak.Core.Backends;
+using GpuTweak.Core.Localization;
 using GpuTweak.Core.Models;
 using GpuTweak.Core.Profiles;
 using GpuTweak.Core.Safety;
@@ -73,7 +74,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ResumeTuneCommand = new RelayCommand(() => _ = StartTuneAsync(resume: true), () => !IsTuning && PendingJournal is not null);
         StopTuneCommand = new RelayCommand(() => _tuneCts?.Cancel(), () => IsTuning);
         SaveProfileCommand = new RelayCommand(SaveProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
-        LoadProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { LoadIntoEditor(u.Settings); _activeProfileName = u.Name; Status = $"\"{u.Name}\" yüklendi. Uygula'ya basınca karta yazılır."; } });
+        LoadProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { LoadIntoEditor(u.Settings); _activeProfileName = u.Name; Status = L.F("\"{0}\" yüklendi. Uygula'ya basınca karta yazılır.", u.Name); } });
         DeleteProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { _profileStore.Delete(u.Name); Profiles.Remove(u); } });
         ToggleStableCommand = new RelayCommand(p => { if (p is UserProfile u) UpdateProfile(u, u with { IsStable = !u.IsStable, AutoApplyOnStart = u.AutoApplyOnStart && !u.IsStable }); });
         ToggleAutoApplyCommand = new RelayCommand(p => ToggleAutoApply(p as UserProfile));
@@ -83,9 +84,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         PendingJournal = TuneJournal.Load(dataDirectory);
         if (PendingJournal is not null && crash is not null && PendingJournal.TestingOffsetMHz is { } crashedAt)
-            TuneMessage = $"Otomatik ayar testi +{crashedAt} MHz'de bilgisayarı kilitledi. Bu değer kararsız sayıldı; kaldığı yerden devam edebilirsin.";
+            TuneMessage = L.F("Otomatik ayar testi +{0} MHz'de bilgisayarı kilitledi. Bu değer kararsız sayıldı; kaldığı yerden devam edebilirsin.", crashedAt);
         else if (PendingJournal is not null)
-            TuneMessage = "Önceki otomatik ayar testi yarıda kaldı. Kaldığı yerden devam edebilirsin.";
+            TuneMessage = L.T("Önceki otomatik ayar testi yarıda kaldı. Kaldığı yerden devam edebilirsin.");
 
         // Look at what happened since the last run before anything is applied: a crash or driver reset with the
         // previous settings steps them (and the profile that holds them) down before it is auto-applied again.
@@ -105,14 +106,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         if (crash is not null)
         {
-            Status = "Önceki oturum özel ayarlar açıkken beklenmedik şekilde kapandı. Güvenlik için varsayılan ayarlarla başlatıldı." + (Status is null ? "" : " " + Status);
+            Status = L.T("Önceki oturum özel ayarlar açıkken beklenmedik şekilde kapandı. Güvenlik için varsayılan ayarlarla başlatıldı.") + (Status is null ? "" : " " + Status);
             StatusIsWarning = true;
         }
         else if (_profileStore.GetStartupProfile(Info.Name, crash) is { } startup)
         {
             ApplyDirect(startup.Settings, startup.Name);
             LoadIntoEditor(startup.Settings);
-            Status ??= $"Stabil profil \"{startup.Name}\" otomatik uygulandı.";
+            Status ??= L.F("Stabil profil \"{0}\" otomatik uygulandı.", startup.Name);
         }
         Stability.Update(_stability.State, null);
         RefreshSilicon();
@@ -122,10 +123,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public TuningLimits Limits { get; }
     public OverlayViewModel Overlay { get; }
     public string VendorName => Info.Vendor switch { GpuVendor.Nvidia => "NVIDIA", GpuVendor.Amd => "AMD", GpuVendor.Intel => "Intel", _ => "GPU" };
-    public string Subtitle => $"Sürücü {Info.DriverVersion} · {Info.VramBytes / (1024 * 1024 * 1024.0):0} GB VRAM · GPU Tweak v{AppVersion}";
+    public string Subtitle => L.F("Sürücü {0} · {1:0} GB VRAM · GPU Tweak v{2}", Info.DriverVersion, Info.VramBytes / (1024 * 1024 * 1024.0), AppVersion);
     private static string AppVersion => typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "?";
     public bool IsCustomActive => !_active.IsStock;
-    public string ActiveStateText => _active.IsStock ? "Varsayılan ayarlar" : _activeProfileName is { } n ? $"Aktif: {n}" : "Özel ayarlar aktif";
+    public string ActiveStateText => _active.IsStock ? L.T("Varsayılan ayarlar") : _activeProfileName is { } n ? L.F("Aktif: {0}", n) : L.T("Özel ayarlar aktif");
 
     // ---- Live metrics ----
     private string _temperature = "–", _coreClock = "–", _memoryClock = "–", _power = "–", _vram = "–", _fan = "–", _load = "–";
@@ -221,7 +222,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
     public bool HasTuneResult => TuneResult is { Success: true };
     public string TuneSummary => TuneResult is { Success: true } r
-        ? $"Güç {r.BaselinePowerW:0} W → {r.TunedPowerW:0} W   ·   Sıcaklık {r.BaselineTemperatureC:0}° → {r.TunedTemperatureC:0}°   ·   Performans %{100 * r.TunedScore / r.BaselineScore:0}"
+        ? L.F("Güç {0:0} W → {1:0} W   ·   Sıcaklık {2:0}° → {3:0}°   ·   Performans %{4:0}", r.BaselinePowerW, r.TunedPowerW, r.BaselineTemperatureC, r.TunedTemperatureC, 100 * r.TunedScore / r.BaselineScore)
         : "";
 
     public TuneMonitorViewModel Monitor { get; } = new();
@@ -250,7 +251,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool CanMarkStable { get => _canMarkStable; private set => Set(ref _canMarkStable, value); }
 
     // ---- Silicon ----
-    private string _siliconHeadroom = "–", _siliconText = "Otomatik ayarı bir kez çalıştırınca çipinin ne kadar kaldırdığı burada görünür.", _siliconDaily = "–", _siliconGame = "–";
+    private string _siliconHeadroom = "–", _siliconText = L.T("Otomatik ayarı bir kez çalıştırınca çipinin ne kadar kaldırdığı burada görünür."), _siliconDaily = "–", _siliconGame = "–";
     private bool _hasSilicon;
     public bool HasSilicon { get => _hasSilicon; private set => Set(ref _hasSilicon, value); }
     public string SiliconHeadroom { get => _siliconHeadroom; private set => Set(ref _siliconHeadroom, value); }
@@ -259,6 +260,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string SiliconText { get => _siliconText; private set => Set(ref _siliconText, value); }
 
     public string DataFolder => _dataDirectory;
+
+    public bool IsTurkish => L.Language == "tr";
+    public bool IsEnglish => L.Language == "en";
+    public ICommand SetLanguageCommand => new RelayCommand(p => SetLanguage(p as string));
+
+    private void SetLanguage(string? language)
+    {
+        if (language is null || language == L.Language) return;
+        _settings = _settings with { Language = language };
+        _settingsStore.Save(_settings);
+        L.SetLanguage(language);
+        // Texts built in code are re-created in the new language; messages already shown are dropped.
+        Status = null;
+        if (!IsTuning) TuneMessage = null;
+        Stability.LastChange = "";
+        Stability.Update(_stability.State, _sessions.CurrentGame);
+        RefreshSilicon();
+        OnPropertyChanged(string.Empty);
+    }
 
     private bool _startWithWindows = StartupTask.IsEnabled();
     /// <summary>Starts the app at sign-in, so the profile marked stable + automatic is applied again after every reboot.</summary>
@@ -273,12 +293,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             OnPropertyChanged();
             if (!ok)
             {
-                Status = "Windows başlangıç görevi ayarlanamadı.";
+                Status = L.T("Windows başlangıç görevi ayarlanamadı.");
                 StatusIsWarning = true;
             }
             else if (value && !_profileStore.Profiles.Any(p => p.IsStable && p.AutoApplyOnStart))
             {
-                Status = "Program artık Windows ile açılacak. Ayarının da uygulanması için bir profili \"Stabil\" ve \"Otomatik: açık\" yap.";
+                Status = L.T("Program artık Windows ile açılacak. Ayarının da uygulanması için bir profili \"Stabil\" ve \"Otomatik: açık\" yap.");
                 StatusIsWarning = false;
             }
         }
@@ -296,7 +316,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             OnPropertyChanged();
         }
     }
-    public string MonitorTitle => IsTuning ? "Otomatik ayar çalışıyor" : TuneResult is { Success: true } ? "Otomatik ayar bitti" : "Otomatik ayar";
+    public string MonitorTitle => IsTuning ? L.T("Otomatik ayar çalışıyor") : TuneResult is { Success: true } ? L.T("Otomatik ayar bitti") : L.T("Otomatik ayar");
 
     public ICommand StartTuneCommand { get; }
     public ICommand ResumeTuneCommand { get; }
@@ -341,8 +361,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             IsConfirmPending = true;
             LoadIntoEditor(result.Settings);
             Status = result.WasAdjusted
-                ? "Bazı değerler güvenli aralığa çekildi: " + string.Join("; ", result.Adjustments)
-                : "Ayarlar uygulandı. Ekran düzgünse 15 saniye içinde \"Koru\"ya bas, yoksa otomatik geri alınır.";
+                ? L.T("Bazı değerler güvenli aralığa çekildi: ") + string.Join("; ", result.Adjustments)
+                : L.T("Ayarlar uygulandı. Ekran düzgünse 15 saniye içinde \"Koru\"ya bas, yoksa otomatik geri alınır.");
             StatusIsWarning = result.WasAdjusted;
             _crashGuard.MarkCustomApplied(_activeProfileName);
         }
@@ -377,19 +397,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             case ApplyOutcome.Confirmed:
                 SetActive(settings, _activeProfileName);
-                Status = "Ayarlar korundu. Bir süre oyunda test edip stabilse profili \"stabil\" işaretleyebilirsin.";
+                Status = L.T("Ayarlar korundu. Bir süre oyunda test edip stabilse profili \"stabil\" işaretleyebilirsin.");
                 StatusIsWarning = false;
                 break;
             case ApplyOutcome.RevertedByTimeout:
                 SetActive(settings, null);
                 LoadIntoEditor(settings);
-                Status = "Onay gelmedi, önceki ayarlara otomatik dönüldü.";
+                Status = L.T("Onay gelmedi, önceki ayarlara otomatik dönüldü.");
                 StatusIsWarning = true;
                 break;
             case ApplyOutcome.RevertedByUser:
                 SetActive(settings, null);
                 LoadIntoEditor(settings);
-                Status = "Önceki ayarlara dönüldü.";
+                Status = L.T("Önceki ayarlara dönüldü.");
                 StatusIsWarning = false;
                 break;
             case ApplyOutcome.Failed:
@@ -419,7 +439,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             _backend.ResetToStock();
             SetActive(TuningSettings.Stock, null);
             LoadIntoEditor(TuningSettings.Stock);
-            Status = "Varsayılan ayarlara dönüldü.";
+            Status = L.T("Varsayılan ayarlara dönüldü.");
             StatusIsWarning = false;
         }
         catch (GpuBackendException e)
@@ -435,7 +455,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// </summary>
     private void ApplyQuickMode(string? mode)
     {
-        _activeProfileName = mode switch { "quiet" => "Sessiz", "max" => "Performans", _ => null };
+        _activeProfileName = mode switch { "quiet" => L.T("Sessiz"), "max" => L.T("Performans"), _ => null };
         LoadIntoEditor(TuningSettings.Stock);
         PowerLimit = mode switch
         {
@@ -456,7 +476,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (existing is not null) Profiles[Profiles.IndexOf(existing)] = profile;
         else Profiles.Add(profile);
         NewProfileName = "";
-        Status = $"\"{name}\" kaydedildi. Test edip stabilse işaretle; sadece stabil profiller açılışta otomatik uygulanabilir.";
+        Status = L.F("\"{0}\" kaydedildi. Test edip stabilse işaretle; sadece stabil profiller açılışta otomatik uygulanabilir.", name);
         StatusIsWarning = false;
     }
 
@@ -472,7 +492,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (profile is null) return;
         if (!profile.IsStable && !profile.AutoApplyOnStart)
         {
-            Status = "Açılışta otomatik uygulama için önce profili stabil olarak işaretlemelisin.";
+            Status = L.T("Açılışta otomatik uygulama için önce profili stabil olarak işaretlemelisin.");
             StatusIsWarning = true;
             return;
         }
@@ -484,7 +504,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (suggestion is null) return;
         LoadIntoEditor(suggestion.ConservativeStart());
         _activeProfileName = suggestion.Title;
-        Status = $"\"{suggestion.Title}\" yarı güçte yüklendi (offset'ler %50). Uygula, test et, sonra adım adım artır.";
+        Status = L.F("\"{0}\" yarı güçte yüklendi (offset'ler %50). Uygula, test et, sonra adım adım artır.", suggestion.Title);
         StatusIsWarning = false;
     }
 
@@ -512,7 +532,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (IsConfirmPending) _applyGuard.Revert();
             ResetToStock();
-            Status = $"GPU {_thermalGuard.LimitC:0}°C üstüne çıktı. Güvenlik için varsayılan ayarlara dönüldü.";
+            Status = L.F("GPU {0:0}°C üstüne çıktı. Güvenlik için varsayılan ayarlara dönüldü.", _thermalGuard.LimitC);
             StatusIsWarning = true;
         }
     }
@@ -569,15 +589,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         if (result is { Success: true, Settings: { } settings })
         {
-            ApplyDirect(settings, "Otomatik UV");
+            ApplyDirect(settings, L.T("Otomatik UV"));
             LoadIntoEditor(settings);
-            var profile = new UserProfile("Otomatik UV", Info.Name, settings, CreatedAt: DateTimeOffset.Now);
+            var profile = new UserProfile(L.T("Otomatik UV"), Info.Name, settings, CreatedAt: DateTimeOffset.Now);
             _profileStore.Save(profile);
             var existing = Profiles.FirstOrDefault(p => p.Name == profile.Name);
             if (existing is not null) Profiles[Profiles.IndexOf(existing)] = profile;
             else Profiles.Add(profile);
-            TuneMessage = result.Message + " Uygulandı ve \"Otomatik UV\" profili olarak kaydedildi.";
-            Status = "Birkaç gün oyunlarda sorunsuz giderse profili \"Stabil\" işaretle; o zaman açılışta otomatik uygulanabilir.";
+            TuneMessage = result.Message + L.T(" Uygulandı ve \"Otomatik UV\" profili olarak kaydedildi.");
+            Status = L.T("Birkaç gün oyunlarda sorunsuz giderse profili \"Stabil\" işaretle; o zaman açılışta otomatik uygulanabilir.");
             StatusIsWarning = false;
         }
         else
@@ -613,11 +633,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             _stability.AddSession(finished);
             if (StabilityAdvisor.ShouldSuggestStable(_stability.State) && ActiveProfile() is { IsStable: false } p)
             {
-                Status = $"Bu ayarlar {Stability.CleanTime} oyunda sorunsuz çalıştı. \"{p.Name}\" profilini \"Stabil\" işaretleyebilirsin.";
+                Status = L.F("Bu ayarlar {0} oyunda sorunsuz çalıştı. \"{1}\" profilini \"Stabil\" işaretleyebilirsin.", Stability.CleanTime, p.Name);
                 StatusIsWarning = false;
             }
         }
-        if (finished is not null || Stability.CurrentGame != (_sessions.CurrentGame ?? "Oyun yok"))
+        if (finished is not null || Stability.CurrentGame != (_sessions.CurrentGame ?? L.T("Oyun yok")))
         {
             Stability.Update(_stability.State, _sessions.CurrentGame);
             UpdateCanMarkStable();
@@ -641,30 +661,30 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         foreach (var (incident, adjustment) in updates)
         {
             _sessions.MarkIncident();
-            var where = incident.Game is { } g ? $"{g} oyununda" : "Oyun sırasında";
+            var where = incident.Game is { } g ? L.F("{0} oyununda", g) : L.T("Oyun sırasında");
             var what = incident.Kind switch
             {
-                IncidentKind.DriverReset => "ekran sürücüsü çökmesi",
-                IncidentKind.GameCrash => "oyun çökmesi",
-                IncidentKind.SystemCrash => "sistem çökmesi",
-                _ => "görüntü bozulması (artifact)",
+                IncidentKind.DriverReset => L.T("ekran sürücüsü çökmesi"),
+                IncidentKind.GameCrash => L.T("oyun çökmesi"),
+                IncidentKind.SystemCrash => L.T("sistem çökmesi"),
+                _ => L.T("görüntü bozulması (artifact)"),
             };
-            if (incident.Kind == IncidentKind.SystemCrash) where = "Bilgisayarda";
+            if (incident.Kind == IncidentKind.SystemCrash) where = L.T("Bilgisayarda");
 
             if (adjustment is null)
             {
-                Status = $"{where} {what} kaydedildi. Kart varsayılan ayarlardaydı, ayarlarla ilgisi yok.";
+                Status = L.F("{0} {1} kaydedildi. Kart varsayılan ayarlardaydı, ayarlarla ilgisi yok.", where, what);
                 StatusIsWarning = false;
             }
             else if (!_stability.AutoAdjust)
             {
-                Status = $"{where} {what} algılandı. Öneri: {adjustment.Description}. (Otomatik düzeltme kapalı.)";
+                Status = L.F("{0} {1} algılandı. Öneri: {2}. (Otomatik düzeltme kapalı.)", where, what, adjustment.Description);
                 StatusIsWarning = true;
             }
             else
             {
                 StepDown(adjustment);
-                Status = $"{where} {what} algılandı. Daha güvenli ayara geçildi: {adjustment.Description}.";
+                Status = L.F("{0} {1} algılandı. Daha güvenli ayara geçildi: {2}.", where, what, adjustment.Description);
                 StatusIsWarning = true;
                 Stability.LastChange = $"{DateTime.Now:dd.MM HH:mm} · {adjustment.Description}";
             }
@@ -703,7 +723,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (ActiveProfile() is not { } profile) return;
         UpdateProfile(profile, profile with { IsStable = true });
         UpdateCanMarkStable();
-        Status = $"\"{profile.Name}\" stabil işaretlendi. Açılışta otomatik uygulamak için \"Otomatik\" düğmesini aç.";
+        Status = L.F("\"{0}\" stabil işaretlendi. Açılışta otomatik uygulamak için \"Otomatik\" düğmesini aç.", profile.Name);
         StatusIsWarning = false;
     }
 
@@ -713,16 +733,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (_settings.Silicon is not { } si || si.GpuName != Info.Name)
         {
             HasSilicon = false;
+            SiliconText = L.T("Otomatik ayarı bir kez çalıştırınca çipinin ne kadar kaldırdığı burada görünür.");
             return;
         }
         HasSilicon = true;
         SiliconHeadroom = $"+{si.HighestPassedOffsetMHz} MHz";
         SiliconDaily = $"+{si.AppliedOffsetMHz} MHz";
         var tracked = _stability.State.TrackedSettings;
-        SiliconGame = !tracked.IsStock && tracked.MaxCoreClockMHz is not null && _stability.State.Sessions.Count > 0 ? $"+{tracked.CoreOffsetMHz} MHz" : "henüz oyun yok";
+        SiliconGame = !tracked.IsStock && tracked.MaxCoreClockMHz is not null && _stability.State.Sessions.Count > 0 ? $"+{tracked.CoreOffsetMHz} MHz" : L.T("henüz oyun yok");
         SiliconText = si.ReachedSearchLimit
-            ? $"Bu çip testin üst sınırına kadar hatasız çalıştı; gerçek payı daha da yüksek olabilir. Ölçüm: {si.TestedAt.LocalDateTime:dd.MM.yyyy}."
-            : $"Bu çip, stok hızında +{si.HighestPassedOffsetMHz} MHz'e kadar hatasız çalıştı; üstünde hata verdi. Günlük kullanımda {si.HighestPassedOffsetMHz - si.AppliedOffsetMHz} MHz güvenlik payı bırakıldı. Ölçüm: {si.TestedAt.LocalDateTime:dd.MM.yyyy}.";
+            ? L.F("Bu çip testin üst sınırına kadar hatasız çalıştı; gerçek payı daha da yüksek olabilir. Ölçüm: {0:dd.MM.yyyy}.", si.TestedAt.LocalDateTime)
+            : L.F("Bu çip, stok hızında +{0} MHz'e kadar hatasız çalıştı; üstünde hata verdi. Günlük kullanımda {1} MHz güvenlik payı bırakıldı. Ölçüm: {2:dd.MM.yyyy}.", si.HighestPassedOffsetMHz, si.HighestPassedOffsetMHz - si.AppliedOffsetMHz, si.TestedAt.LocalDateTime);
     }
 
     private static void OpenUrl(string url)

@@ -1,4 +1,5 @@
 using GpuTweak.Core.Backends;
+using GpuTweak.Core.Localization;
 using GpuTweak.Core.Models;
 using GpuTweak.Core.Safety;
 
@@ -83,7 +84,7 @@ public sealed class AutoTuner
         {
             SafeReset();
             TuneJournal.Delete(_dataDirectory);
-            Report(TunePhase.Cancelled, "Test durduruldu, varsayılan ayarlara dönüldü.", 0);
+            Report(TunePhase.Cancelled, L.T("Test durduruldu, varsayılan ayarlara dönüldü."), 0);
             return TuneResult.Failed("Test durduruldu.");
         }
         catch (Exception e)
@@ -97,29 +98,29 @@ public sealed class AutoTuner
     private async Task<TuneResult> RunCoreAsync(TuneJournal? resume, CancellationToken ct)
     {
         if (_backend.Limits.CoreOffsetMaxMHz <= 0)
-            return Fail("Sürücü bu kartta çekirdek offset ayarına izin vermiyor, bu yüzden undervolt yapılamıyor. Sürücüyü güncellemeyi dene.");
+            return Fail(L.T("Sürücü bu kartta çekirdek offset ayarına izin vermiyor, bu yüzden undervolt yapılamıyor. Sürücüyü güncellemeyi dene."));
 
         _backend.ResetToStock();
-        Report(TunePhase.Preparing, "Test hazırlanıyor (stok ayarlarda referans hesaplanıyor)…", 0.01);
+        Report(TunePhase.Preparing, L.T("Test hazırlanıyor (stok ayarlarda referans hesaplanıyor)…"), 0.01);
         var prepare = await _stress.PrepareAsync(ct);
         if (!prepare.Passed)
-            return Fail($"Kart stok ayarlarda bile hatalı sonuç verdi ({prepare.Failure}). Ayar yapmadan önce sürücüyü/kartı kontrol etmek gerekir.");
+            return Fail(L.F("Kart stok ayarlarda bile hatalı sonuç verdi ({0}). Ayar yapmadan önce sürücüyü/kartı kontrol etmek gerekir.", prepare.Failure));
 
         TuneJournal journal;
         if (resume is null)
         {
-            Report(TunePhase.BoostProbe, "En yüksek boost hızı ölçülüyor…", 0.03);
+            Report(TunePhase.BoostProbe, L.T("En yüksek boost hızı ölçülüyor…"), 0.03);
             var probe = await MeasureAsync(StressPattern.Transient, _options.BoostProbe, ct);
-            if (!probe.Result.Passed) return Fail($"Stok ayarlarda hata: {probe.Result.Failure}");
-            if (probe.Overheated) return Fail("Kart stok ayarlarda bile çok ısınıyor. Önce soğutmayı kontrol et.");
+            if (!probe.Result.Passed) return Fail(L.F("Stok ayarlarda hata: {0}", probe.Result.Failure));
+            if (probe.Overheated) return Fail(L.T("Kart stok ayarlarda bile çok ısınıyor. Önce soğutmayı kontrol et."));
 
-            Report(TunePhase.Baseline, "Stok performans ölçülüyor…", 0.08);
+            Report(TunePhase.Baseline, L.T("Stok performans ölçülüyor…"), 0.08);
             var baseline = await MeasureAsync(StressPattern.Heavy, _options.Baseline, ct);
-            if (!baseline.Result.Passed) return Fail($"Stok ayarlarda hata: {baseline.Result.Failure}");
+            if (!baseline.Result.Passed) return Fail(L.F("Stok ayarlarda hata: {0}", baseline.Result.Failure));
 
-            _steps?.Report(new TuneStep("Stok", true, null, 1, baseline.AvgPowerW, baseline.MaxTemperatureC));
+            _steps?.Report(new TuneStep(L.T("Stok"), true, null, 1, baseline.AvgPowerW, baseline.MaxTemperatureC));
             var maxClock = (int)(Math.Max(probe.HighClockMHz, baseline.HighClockMHz) / 15) * 15;
-            if (maxClock <= 0) return Fail("Çekirdek hızı okunamadı.");
+            if (maxClock <= 0) return Fail(L.T("Çekirdek hızı okunamadı."));
             journal = new TuneJournal(maxClock, baseline.Result.Score, baseline.AvgPowerW, baseline.MaxTemperatureC, 0, null, DateTimeOffset.Now);
             journal.Save(_dataDirectory);
         }
@@ -127,7 +128,7 @@ public sealed class AutoTuner
         {
             journal = resume;
             if (resume.TestingOffsetMHz is { } crashed)
-                Report(TunePhase.Searching, $"Önceki test +{crashed} MHz'de çökmüştü; bu değer kararsız sayıldı.", 0.1);
+                Report(TunePhase.Searching, L.F("Önceki test +{0} MHz'de çökmüştü; bu değer kararsız sayıldı.", crashed), 0.1);
         }
 
         var lastStable = journal.LastStableOffsetMHz;
@@ -139,7 +140,7 @@ public sealed class AutoTuner
         {
             ct.ThrowIfCancellationRequested();
             var fraction = 0.1 + 0.65 * offset / Math.Max(1, limit);
-            Report(TunePhase.Searching, $"+{offset} MHz deneniyor (son sağlam: +{lastStable})…", fraction, offset);
+            Report(TunePhase.Searching, L.F("+{0} MHz deneniyor (son sağlam: +{1})…", offset, lastStable), fraction, offset);
 
             journal = journal with { LastStableOffsetMHz = lastStable, TestingOffsetMHz = offset };
             journal.Save(_dataDirectory);
@@ -147,7 +148,7 @@ public sealed class AutoTuner
             var step = await TryOffsetAsync(journal.MaxClockMHz, offset, StressPattern.Mixed, _options.Step, journal.BaselineScore, ct);
             if (step is not null)
             {
-                Report(TunePhase.Searching, $"+{offset} MHz geçemedi: {step}", fraction, offset);
+                Report(TunePhase.Searching, L.F("+{0} MHz geçemedi: {1}", offset, step), fraction, offset);
                 break;
             }
             lastStable = offset;
@@ -160,9 +161,9 @@ public sealed class AutoTuner
         for (var attempt = 0; attempt < 3; attempt++)
         {
             if (candidate <= 0)
-                return Fail("Bu kartta güvenli bir undervolt payı bulunamadı. Sessiz modu (güç limiti) kullanmanı öneririm.");
+                return Fail(L.T("Bu kartta güvenli bir undervolt payı bulunamadı. Sessiz modu (güç limiti) kullanmanı öneririm."));
 
-            Report(TunePhase.Validating, $"+{candidate} MHz {_options.Validation.TotalMinutes:0} dakika doğrulanıyor…", 0.8 + 0.06 * attempt, candidate);
+            Report(TunePhase.Validating, L.F("+{0} MHz {1:0} dakika doğrulanıyor…", candidate, _options.Validation.TotalMinutes), 0.8 + 0.06 * attempt, candidate);
             journal = journal with { TestingOffsetMHz = candidate };
             journal.Save(_dataDirectory);
 
@@ -170,11 +171,11 @@ public sealed class AutoTuner
             _backend.Apply(settings);
             var validation = await MeasureAsync(StressPattern.Mixed, _options.Validation, ct);
             var failure = Judge(validation, journal.BaselineScore);
-            ReportStep($"+{candidate} MHz (doğrulama)", failure, validation, journal.BaselineScore);
+            ReportStep(L.F("+{0} MHz (doğrulama)", candidate), failure, validation, journal.BaselineScore);
             if (failure is null)
             {
                 TuneJournal.Delete(_dataDirectory);
-                var message = $"Tatlı nokta: max {journal.MaxClockMHz} MHz, çekirdek +{candidate} MHz.";
+                var message = L.F("Tatlı nokta: max {0} MHz, çekirdek +{1} MHz.", journal.MaxClockMHz, candidate);
                 Report(TunePhase.Done, message, 1, candidate);
                 return new TuneResult(true, message, settings,
                     journal.BaselineScore, validation.Result.Score,
@@ -184,11 +185,11 @@ public sealed class AutoTuner
             }
 
             SafeReset();
-            Report(TunePhase.Validating, $"Doğrulama geçemedi ({failure}); bir adım geri gidiliyor.", 0.8 + 0.06 * attempt, candidate);
+            Report(TunePhase.Validating, L.F("Doğrulama geçemedi ({0}); bir adım geri gidiliyor.", failure), 0.8 + 0.06 * attempt, candidate);
             candidate -= _options.StepMHz;
         }
 
-        return Fail("Doğrulama üç denemede de geçemedi. Varsayılan ayarlarda kalındı.");
+        return Fail(L.T("Doğrulama üç denemede de geçemedi. Varsayılan ayarlarda kalındı."));
     }
 
     /// <summary>Returns null when the offset passed, otherwise the reason it failed.</summary>
@@ -211,10 +212,10 @@ public sealed class AutoTuner
 
     private string? Judge(Measurement m, double baselineScore)
     {
-        if (!m.Result.Passed) return m.Result.Failure ?? "hata";
-        if (m.Overheated) return $"sıcaklık {_options.AbortTemperatureC:0}°C'yi geçti";
+        if (!m.Result.Passed) return m.Result.Failure ?? L.T("hata");
+        if (m.Overheated) return L.F("sıcaklık {0:0}°C'yi geçti", _options.AbortTemperatureC);
         if (m.Result.Score < baselineScore * _options.MinScoreRatio)
-            return $"performans stoka göre %{100 * (1 - m.Result.Score / baselineScore):0.0} düştü (clock stretching)";
+            return L.F("performans stoka göre %{0:0.0} düştü (clock stretching)", 100 * (1 - m.Result.Score / baselineScore));
         return null;
     }
 
@@ -256,7 +257,7 @@ public sealed class AutoTuner
         }
         catch (OperationCanceledException) when (overheated && !ct.IsCancellationRequested)
         {
-            result = StressResult.Fail("aşırı sıcaklık");
+            result = StressResult.Fail(L.T("aşırı sıcaklık"));
         }
         finally
         {

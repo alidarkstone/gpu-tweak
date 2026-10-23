@@ -37,6 +37,8 @@ public sealed record SiliconResult(
 public sealed record AppSettings
 {
     public SiliconResult? Silicon { get; init; }
+    /// <summary>"tr" or "en"; null follows the Windows display language.</summary>
+    public string? Language { get; init; }
     public OverlaySettings Overlay { get; init; } = new();
     public double ThermalLimitC { get; init; } = 88;
     public bool ShowLivePanel { get; init; } = true;

@@ -3,6 +3,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using GpuTweak.Core.Models;
 using GpuTweak.Core.Settings;
+using GpuTweak.Core.Localization;
 
 namespace GpuTweak.App.ViewModels;
 
@@ -71,10 +72,10 @@ public sealed class OverlayViewModel : ObservableObject
         _last = s;
         var rows = new List<OverlayRow>();
         if (ShowLoad && s.LoadPercent is { } l) rows.Add(new("GPU", $"{l}", "%"));
-        if (ShowTemperature && s.TemperatureC is { } t) rows.Add(new("Sıcaklık", $"{t:0}", "°C"));
-        if (ShowCoreClock && s.CoreClockMHz is { } c) rows.Add(new("Çekirdek", $"{c}", "MHz"));
-        if (ShowMemoryClock && s.MemoryClockMHz is { } m) rows.Add(new("Bellek", $"{m}", "MHz"));
-        if (ShowPower && s.PowerW is { } p) rows.Add(new("Güç", $"{p:0}", "W"));
+        if (ShowTemperature && s.TemperatureC is { } t) rows.Add(new(L.T("Sıcaklık"), $"{t:0}", "°C"));
+        if (ShowCoreClock && s.CoreClockMHz is { } c) rows.Add(new(L.T("Çekirdek"), $"{c}", "MHz"));
+        if (ShowMemoryClock && s.MemoryClockMHz is { } m) rows.Add(new(L.T("Bellek"), $"{m}", "MHz"));
+        if (ShowPower && s.PowerW is { } p) rows.Add(new(L.T("Güç"), $"{p:0}", "W"));
         if (ShowVram && s.VramUsedBytes is { } v) rows.Add(new("VRAM", $"{v / (1024.0 * 1024 * 1024):0.0}", "GB"));
         if (ShowFan && s.FanPercent is { } f) rows.Add(new("Fan", $"{f}", "%"));
         Rows = rows;

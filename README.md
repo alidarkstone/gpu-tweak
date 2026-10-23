@@ -97,7 +97,7 @@ NVIDIA/AMD logoları ticari marka olduğu için exe içinde gelmez; widget'ta ma
 - [x] Windows ile başlatma
 - [x] Oyun kararlılığı takibi (Windows olay kayıtları) ve otomatik geri çekme, silikon skoru
 - [x] GPU sıcaklığı Min / Ort / Maks
-- [ ] Dil seçimi (Türkçe / English)
+- [x] Dil seçimi (Türkçe / English), üst köşedeki TR | EN düğmesi
 - [ ] DX12 ışın izleme (DXR) stres testi
 - [ ] Fan eğrisi, sistem tepsisi
 - [ ] (Deneysel) V/F eğrisi editörü

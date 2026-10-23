@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using GpuTweak.Core.AutoTune;
+using GpuTweak.Core.Localization;
 using SharpGen.Runtime;
 using Vortice.D3DCompiler;
 using Vortice.Direct3D;
@@ -132,7 +133,7 @@ public sealed class D3D11StressTest : IStressTest
             // Two runs at stock must agree, otherwise the reference itself can't be trusted.
             var first = RunPasses(1);
             var second = RunPasses(1);
-            if (!first.AsSpan().SequenceEqual(second)) return StressResult.Fail("stok ayarlarda iki ölçüm farklı çıktı");
+            if (!first.AsSpan().SequenceEqual(second)) return StressResult.Fail(L.T("stok ayarlarda iki ölçüm farklı çıktı"));
             _reference = first;
             return new StressResult(true, 0, null);
         }
@@ -218,7 +219,7 @@ public sealed class D3D11StressTest : IStressTest
         _totalChecked += result.Length;
         _errors += errors;
         Snapshot = new StressSnapshot(result, _errorMask, _checked, _errors, _pattern, DrawPreview(), _artifactsFound, _totalChecked);
-        reason = errors == 0 ? "" : $"{errors:N0} hesap hatası";
+        reason = errors == 0 ? "" : L.F("{0:N0} hesap hatası", errors);
         return errors == 0;
     }
 
@@ -399,8 +400,8 @@ public sealed class D3D11StressTest : IStressTest
     {
         var removed = _device?.DeviceRemovedReason;
         return removed is { Failure: true } r
-            ? $"sürücü sıfırlandı (0x{r.Code:X8})"
-            : $"DirectX hatası: {e.Message}";
+            ? L.F("sürücü sıfırlandı (0x{0:X8})", r.Code)
+            : L.F("DirectX hatası: {0}", e.Message);
     }
 
     private void Release()

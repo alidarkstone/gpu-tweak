@@ -1,4 +1,5 @@
 using GpuTweak.Core.Stability;
+using GpuTweak.Core.Localization;
 
 namespace GpuTweak.App.ViewModels;
 
@@ -7,7 +8,7 @@ public sealed record IncidentRow(string When, string Text);
 /// <summary>Counters and recent log lines for the "Oyun kararlılığı" card.</summary>
 public sealed class StabilityViewModel : ObservableObject
 {
-    private string _cleanTime = "0 dk", _currentGame = "Oyun yok", _lastChange = "";
+    private string _cleanTime = L.T("0 dk"), _currentGame = L.T("Oyun yok"), _lastChange = "";
     private int _incidentCount, _sessionCount;
     private double _cleanLevel;
     private IReadOnlyList<IncidentRow> _recent = [];
@@ -15,7 +16,7 @@ public sealed class StabilityViewModel : ObservableObject
     public string CleanTime { get => _cleanTime; private set => Set(ref _cleanTime, value); }
     /// <summary>0..1 of the way to the clean time after which "Stabil" is suggested.</summary>
     public double CleanLevel { get => _cleanLevel; private set => Set(ref _cleanLevel, value); }
-    public string CleanGoal => $"{StabilityAdvisor.StableAfter.TotalHours:0} saat sorunsuz oyunda \"Stabil\" önerilir";
+    public string CleanGoal => L.F("{0:0} saat sorunsuz oyunda \"Stabil\" önerilir", StabilityAdvisor.StableAfter.TotalHours);
     public int IncidentCount { get => _incidentCount; private set => Set(ref _incidentCount, value); }
     public int SessionCount { get => _sessionCount; private set => Set(ref _sessionCount, value); }
     public string CurrentGame { get => _currentGame; private set => Set(ref _currentGame, value); }
@@ -29,13 +30,25 @@ public sealed class StabilityViewModel : ObservableObject
         IncidentCount = state.Incidents.Count;
         SessionCount = state.Sessions.Count;
         Recent = state.Incidents.AsEnumerable().Reverse().Take(3)
-            .Select(i => new IncidentRow(i.Time.LocalDateTime.ToString("dd.MM HH:mm"), i.Game is { } g && !i.Description.StartsWith(g) ? $"{g}: {i.Description}" : i.Description))
+            .Select(i => new IncidentRow(i.Time.LocalDateTime.ToString("dd.MM HH:mm"), Describe(i)))
             .ToList();
         SetCurrentGame(currentGame);
     }
 
-    public void SetCurrentGame(string? game) => CurrentGame = game ?? "Oyun yok";
+    public static string Describe(StabilityIncident incident)
+    {
+        var what = incident.Kind switch
+        {
+            IncidentKind.DriverReset => L.T("Ekran sürücüsü çöktü ve sıfırlandı"),
+            IncidentKind.GameCrash => L.T("Oyun çöktü veya dondu"),
+            IncidentKind.SystemCrash => L.T("Bilgisayar beklenmedik şekilde kapandı / mavi ekran"),
+            _ => L.T("Oyunda artifact görüldü"),
+        };
+        return incident.Game is { } game ? $"{game}: {what}" : what;
+    }
+
+    public void SetCurrentGame(string? game) => CurrentGame = game ?? L.T("Oyun yok");
 
     private static string Format(TimeSpan t) =>
-        t.TotalHours >= 1 ? $"{(int)t.TotalHours} sa {t.Minutes} dk" : $"{t.Minutes} dk";
+        t.TotalHours >= 1 ? L.F("{0} sa {1} dk", (int)t.TotalHours, t.Minutes) : L.F("{0} dk", t.Minutes);
 }

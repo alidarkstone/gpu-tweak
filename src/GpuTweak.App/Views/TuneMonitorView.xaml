@@ -16,35 +16,35 @@
             <!-- GPU result map -->
             <StackPanel Width="260">
                 <Grid>
-                    <TextBlock Text="Test görüntüsü" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock local:Loc.Text="Test görüntüsü" Style="{StaticResource SectionTitle}"/>
                     <TextBlock Text="{Binding Monitor.PatternText}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                 </Grid>
                 <Grid Margin="0,4,0,0">
                     <Border CornerRadius="10" ClipToBounds="True" Background="#FF141416">
                         <Image Source="{Binding Monitor.ErrorMap}" Width="260" Height="260" RenderOptions.BitmapScalingMode="HighQuality"/>
                     </Border>
-                    <TextBlock Text="Otomatik ayar başlayınca kartın çizdiği test animasyonu burada görünür" Style="{StaticResource Caption}" TextAlignment="Center"
+                    <TextBlock local:Loc.Text="Otomatik ayar başlayınca kartın çizdiği test animasyonu burada görünür" Style="{StaticResource Caption}" TextAlignment="Center"
                                HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24" Foreground="{StaticResource TertiaryTextBrush}"
                                Visibility="{Binding Monitor.HasMap, Converter={x:Static local:Converters.FalseToVisible}}"/>
                 </Grid>
                 <Grid Margin="0,10,0,0">
-                    <TextBlock Text="Kontrol edilen hesap" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
+                    <TextBlock local:Loc.Text="Kontrol edilen hesap" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding Monitor.ErrorsText}" FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Right"/>
                 </Grid>
                 <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,0"
-                           Text="Kart bu animasyonu çizerken arka planda milyonlarca hesap yapıyor ve her birinin doğruluğu kontrol ediliyor."/>
+                           local:Loc.Text="Kart bu animasyonu çizerken arka planda milyonlarca hesap yapıyor ve her birinin doğruluğu kontrol ediliyor."/>
             </StackPanel>
 
             <!-- Live sensor charts -->
             <StackPanel Grid.Column="2">
-                <TextBlock Text="Canlı sensörler" Style="{StaticResource SectionTitle}" Margin="0,0,0,8"/>
+                <TextBlock local:Loc.Text="Canlı sensörler" Style="{StaticResource SectionTitle}" Margin="0,0,0,8"/>
                 <Grid Margin="0,0,0,10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="110"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Çekirdek" Style="{StaticResource Caption}"/>
+                        <TextBlock local:Loc.Text="Çekirdek" Style="{StaticResource Caption}"/>
                         <TextBlock Text="{Binding Monitor.Clock}" FontSize="17" FontWeight="SemiBold"/>
                     </StackPanel>
                     <Border Grid.Column="1" Background="#14FFFFFF" CornerRadius="8" Height="86" Padding="8">
@@ -57,7 +57,7 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Sıcaklık" Style="{StaticResource Caption}"/>
+                        <TextBlock local:Loc.Text="Sıcaklık" Style="{StaticResource Caption}"/>
                         <TextBlock Text="{Binding Monitor.Temperature}" FontSize="17" FontWeight="SemiBold"/>
                     </StackPanel>
                     <Border Grid.Column="1" Background="#14FFFFFF" CornerRadius="8" Height="86" Padding="8">
@@ -70,9 +70,9 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Güç" Style="{StaticResource Caption}"/>
+                        <TextBlock local:Loc.Text="Güç" Style="{StaticResource Caption}"/>
                         <TextBlock Text="{Binding Monitor.Power}" FontSize="17" FontWeight="SemiBold"/>
-                        <TextBlock Style="{StaticResource Caption}"><Run Text="Yük "/><Run Text="{Binding Monitor.Load, Mode=OneWay}"/></TextBlock>
+                        <TextBlock Style="{StaticResource Caption}"><Run local:Loc.Text="Yük "/><Run Text="{Binding Monitor.Load, Mode=OneWay}"/></TextBlock>
                     </StackPanel>
                     <Border Grid.Column="1" Background="#14FFFFFF" CornerRadius="8" Height="86" Padding="8">
                         <Polyline Points="{Binding Monitor.PowerPoints}" Stroke="{StaticResource GreenBrush}" StrokeThickness="2"/>
@@ -93,8 +93,8 @@
                     </Border.Style>
                     <Grid>
                         <StackPanel>
-                            <TextBlock Text="Bulunan artifact" FontWeight="SemiBold"/>
-                            <TextBlock Style="{StaticResource Caption}" Text="Kartın hatalı hesap ürettiği an sayısı. Bulunan her artifact o ayarın elenmesi demek."/>
+                            <TextBlock local:Loc.Text="Bulunan artifact" FontWeight="SemiBold"/>
+                            <TextBlock Style="{StaticResource Caption}" local:Loc.Text="Kartın hatalı hesap ürettiği an sayısı. Bulunan her artifact o ayarın elenmesi demek."/>
                         </StackPanel>
                         <TextBlock Text="{Binding Monitor.ArtifactsFound}" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                     </Grid>
@@ -121,13 +121,13 @@
                         <ColumnDefinition Width="60"/>
                         <ColumnDefinition Width="80"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="Ayar" Style="{StaticResource Caption}"/>
-                    <TextBlock Grid.Column="1" Text="Sonuç" Style="{StaticResource Caption}"/>
-                    <TextBlock Grid.Column="2" Text="Güç" Style="{StaticResource Caption}"/>
-                    <TextBlock Grid.Column="3" Text="Sıcaklık" Style="{StaticResource Caption}"/>
-                    <TextBlock Grid.Column="4" Text="Performans" Style="{StaticResource Caption}"/>
+                    <TextBlock local:Loc.Text="Ayar" Style="{StaticResource Caption}"/>
+                    <TextBlock Grid.Column="1" local:Loc.Text="Sonuç" Style="{StaticResource Caption}"/>
+                    <TextBlock Grid.Column="2" local:Loc.Text="Güç" Style="{StaticResource Caption}"/>
+                    <TextBlock Grid.Column="3" local:Loc.Text="Sıcaklık" Style="{StaticResource Caption}"/>
+                    <TextBlock Grid.Column="4" local:Loc.Text="Performans" Style="{StaticResource Caption}"/>
                 </Grid>
-                <TextBlock Text="Otomatik ayar çalışınca her denenen değer burada bir satır olarak görünür." Style="{StaticResource Caption}"
+                <TextBlock local:Loc.Text="Otomatik ayar çalışınca her denenen değer burada bir satır olarak görünür." Style="{StaticResource Caption}"
                            Foreground="{StaticResource TertiaryTextBrush}"
                            Visibility="{Binding Monitor.Steps.Count, Converter={x:Static local:Converters.ZeroToVisible}}"/>
                 <ItemsControl ItemsSource="{Binding Monitor.Steps}">

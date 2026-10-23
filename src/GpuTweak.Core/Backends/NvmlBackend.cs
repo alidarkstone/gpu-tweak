@@ -1,4 +1,5 @@
 using GpuTweak.Core.Models;
+using GpuTweak.Core.Localization;
 
 namespace GpuTweak.Core.Backends;
 
@@ -106,16 +107,16 @@ public sealed class NvmlBackend : IGpuBackend
     public void Apply(TuningSettings settings)
     {
         if (Limits.PowerMaxW > 0)
-            Check(Nvml.DeviceSetPowerManagementLimit(_device, (uint)((settings.PowerLimitW ?? Limits.PowerDefaultW) * 1000)), "güç limiti");
+            Check(Nvml.DeviceSetPowerManagementLimit(_device, (uint)((settings.PowerLimitW ?? Limits.PowerDefaultW) * 1000)), L.T("güç limiti"));
         if (Limits.CoreOffsetMaxMHz > Limits.CoreOffsetMinMHz)
-            Check(SetOffset(Nvml.ClockType.Graphics, settings.CoreOffsetMHz), "çekirdek offset");
+            Check(SetOffset(Nvml.ClockType.Graphics, settings.CoreOffsetMHz), L.T("çekirdek offset"));
         if (Limits.MemoryOffsetMaxMHz > Limits.MemoryOffsetMinMHz)
-            Check(SetOffset(Nvml.ClockType.Mem, settings.MemoryOffsetMHz), "bellek offset");
+            Check(SetOffset(Nvml.ClockType.Mem, settings.MemoryOffsetMHz), L.T("bellek offset"));
 
         if (settings.MaxCoreClockMHz is { } maxClock)
-            Check(Nvml.DeviceSetGpuLockedClocks(_device, (uint)Limits.CoreClockMinMHz, (uint)maxClock), "max clock kilidi");
+            Check(Nvml.DeviceSetGpuLockedClocks(_device, (uint)Limits.CoreClockMinMHz, (uint)maxClock), L.T("max clock kilidi"));
         else if (_lockedMaxClockMHz is not null)
-            Check(Nvml.DeviceResetGpuLockedClocks(_device), "max clock kilidi sıfırlama");
+            Check(Nvml.DeviceResetGpuLockedClocks(_device), L.T("max clock kilidi sıfırlama"));
         _lockedMaxClockMHz = settings.MaxCoreClockMHz;
 
         if (Limits.SupportsFanControl)
@@ -123,9 +124,9 @@ public sealed class NvmlBackend : IGpuBackend
             for (uint fan = 0; fan < _fanCount; fan++)
             {
                 if (settings.FanPercent is { } percent)
-                    Check(Nvml.DeviceSetFanSpeed(_device, fan, (uint)percent), "fan hızı");
+                    Check(Nvml.DeviceSetFanSpeed(_device, fan, (uint)percent), L.T("fan hızı"));
                 else if (_manualFanPercent is not null)
-                    Check(Nvml.DeviceSetDefaultFanSpeed(_device, fan), "otomatik fan");
+                    Check(Nvml.DeviceSetDefaultFanSpeed(_device, fan), L.T("otomatik fan"));
             }
             _manualFanPercent = settings.FanPercent;
         }
@@ -138,15 +139,15 @@ public sealed class NvmlBackend : IGpuBackend
         // "Not supported" means that control does not exist on this card, so there is nothing to reset.
         void Try(Nvml.Return result, string what) { if (result is not (Nvml.Return.Success or Nvml.Return.NotSupported)) errors.Add($"{what}: {Nvml.ErrorString(result)}"); }
 
-        Try(SetOffset(Nvml.ClockType.Graphics, 0), "çekirdek offset");
-        Try(SetOffset(Nvml.ClockType.Mem, 0), "bellek offset");
-        if (Limits.PowerMaxW > 0) Try(Nvml.DeviceSetPowerManagementLimit(_device, (uint)(Limits.PowerDefaultW * 1000)), "güç limiti");
-        Try(Nvml.DeviceResetGpuLockedClocks(_device), "max clock kilidi");
-        for (uint fan = 0; fan < _fanCount; fan++) Try(Nvml.DeviceSetDefaultFanSpeed(_device, fan), "otomatik fan");
+        Try(SetOffset(Nvml.ClockType.Graphics, 0), L.T("çekirdek offset"));
+        Try(SetOffset(Nvml.ClockType.Mem, 0), L.T("bellek offset"));
+        if (Limits.PowerMaxW > 0) Try(Nvml.DeviceSetPowerManagementLimit(_device, (uint)(Limits.PowerDefaultW * 1000)), L.T("güç limiti"));
+        Try(Nvml.DeviceResetGpuLockedClocks(_device), L.T("max clock kilidi"));
+        for (uint fan = 0; fan < _fanCount; fan++) Try(Nvml.DeviceSetDefaultFanSpeed(_device, fan), L.T("otomatik fan"));
         _lockedMaxClockMHz = null;
         _manualFanPercent = null;
 
-        if (errors.Count > 0) throw new GpuBackendException("Varsayılana dönülemedi: " + string.Join("; ", errors));
+        if (errors.Count > 0) throw new GpuBackendException(L.T("Varsayılana dönülemedi: ") + string.Join("; ", errors));
     }
 
     // ---- Clock offsets: the v1 struct API (R555+, required on RTX 50) with the older per-clock calls as fallback ----
@@ -226,8 +227,8 @@ public sealed class NvmlBackend : IGpuBackend
     private static void Check(Nvml.Return result, string what)
     {
         if (result == Nvml.Return.Success) return;
-        var hint = result == Nvml.Return.NoPermission ? " (uygulamayı yönetici olarak çalıştırın)" : "";
-        throw new GpuBackendException($"{what} ayarlanamadı: {Nvml.ErrorString(result)}{hint}");
+        var hint = result == Nvml.Return.NoPermission ? L.T(" (uygulamayı yönetici olarak çalıştırın)") : "";
+        throw new GpuBackendException(L.F("{0} ayarlanamadı: {1}{2}", what, Nvml.ErrorString(result), hint));
     }
 
     public void Dispose()

@@ -5,6 +5,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using GpuTweak.App.Stress;
 using GpuTweak.Core.AutoTune;
+using GpuTweak.Core.Localization;
 using GpuTweak.Core.Models;
 
 namespace GpuTweak.App.ViewModels;
@@ -81,7 +82,7 @@ public sealed class TuneMonitorViewModel : ObservableObject
     public void AddStep(TuneStep step) => Steps.Add(new TuneStepRow(
         step.Label,
         step.Passed,
-        step.Passed ? "Geçti" : step.Reason ?? "Geçemedi",
+        step.Passed ? L.T("Geçti") : step.Reason ?? L.T("Geçemedi"),
         step.AvgPowerW > 0 ? $"{step.AvgPowerW:0} W" : "–",
         step.MaxTemperatureC > 0 ? $"{step.MaxTemperatureC:0}°" : "–",
         step.RelativeScore > 0 ? $"%{100 * step.RelativeScore:0.0}" : "–"));
@@ -126,7 +127,7 @@ public sealed class TuneMonitorViewModel : ObservableObject
         _drawn = snapshot;
         HasMap = true;
 
-        PatternText = snapshot.Pattern == StressPattern.Heavy ? "Ağır yük" : snapshot.Pattern == StressPattern.Transient ? "Dalgalı yük" : "Karışık yük";
+        PatternText = snapshot.Pattern == StressPattern.Heavy ? L.T("Ağır yük") : snapshot.Pattern == StressPattern.Transient ? L.T("Dalgalı yük") : L.T("Karışık yük");
         HasErrors = snapshot.Errors > 0;
         ErrorsText = $"{snapshot.TotalChecked:N0}";
 

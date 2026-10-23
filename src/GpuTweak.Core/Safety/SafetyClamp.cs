@@ -1,4 +1,5 @@
 using GpuTweak.Core.Models;
+using GpuTweak.Core.Localization;
 
 namespace GpuTweak.Core.Safety;
 
@@ -17,18 +18,18 @@ public static class SafetyClamp
         int Fit(int value, int min, int max, string label, string unit)
         {
             var clamped = Math.Clamp(value, min, Math.Max(min, max));
-            if (clamped != value) notes.Add($"{label} {value}{unit} → {clamped}{unit} (izin verilen aralık {min}…{max}{unit})");
+            if (clamped != value) notes.Add(L.F("{0} {1}{2} → {3}{4} (izin verilen aralık {5}…{6}{7})", label, value, unit, clamped, unit, min, max, unit));
             return clamped;
         }
 
-        var core = Fit(requested.CoreOffsetMHz, limits.CoreOffsetMinMHz, limits.CoreOffsetMaxMHz, "Çekirdek offset", " MHz");
-        var memory = Fit(requested.MemoryOffsetMHz, limits.MemoryOffsetMinMHz, limits.MemoryOffsetMaxMHz, "Bellek offset", " MHz");
+        var core = Fit(requested.CoreOffsetMHz, limits.CoreOffsetMinMHz, limits.CoreOffsetMaxMHz, L.T("Çekirdek offset"), " MHz");
+        var memory = Fit(requested.MemoryOffsetMHz, limits.MemoryOffsetMinMHz, limits.MemoryOffsetMaxMHz, L.T("Bellek offset"), " MHz");
 
-        int? power = requested.PowerLimitW is { } p ? Fit(p, limits.PowerMinW, limits.PowerMaxW, "Güç limiti", " W") : null;
+        int? power = requested.PowerLimitW is { } p ? Fit(p, limits.PowerMinW, limits.PowerMaxW, L.T("Güç limiti"), " W") : null;
         if (power == limits.PowerDefaultW) power = null;
 
         int? maxClock = requested.MaxCoreClockMHz is { } c
-            ? Fit(c, limits.CoreClockMinMHz, limits.CoreClockMaxMHz, "Max clock", " MHz")
+            ? Fit(c, limits.CoreClockMinMHz, limits.CoreClockMaxMHz, L.T("Max clock"), " MHz")
             : null;
 
         int? fan = null;
@@ -37,7 +38,7 @@ public static class SafetyClamp
             if (limits.SupportsFanControl)
                 fan = Fit(f, limits.FanMinPercent, limits.FanMaxPercent, "Fan", "%");
             else
-                notes.Add("Bu kart fan kontrolünü desteklemiyor; fan otomatikte bırakıldı");
+                notes.Add(L.T("Bu kart fan kontrolünü desteklemiyor; fan otomatikte bırakıldı"));
         }
 
         return new ClampResult(new TuningSettings(core, memory, power, maxClock, fan), notes);

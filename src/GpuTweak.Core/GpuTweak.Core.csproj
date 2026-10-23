@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Profiles\community-profiles.json" LogicalName="GpuTweak.Core.community-profiles.json" />
+    <EmbeddedResource Include="Localization/strings-*.json" LogicalName="GpuTweak.Core.%(Filename).json" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="GpuTweak.Core.Tests" />
