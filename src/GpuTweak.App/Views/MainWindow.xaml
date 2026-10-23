@@ -121,7 +121,7 @@
                                     <StackPanel>
                                         <TextBlock Text="Otomatik ayar" Style="{StaticResource SectionTitle}"/>
                                         <TextBlock Style="{StaticResource Caption}"
-                                                   Text="Kartını kendisi test eder ve FPS kaybetmeden en düşük voltajlı, en serin ayarı bulur. Yaklaşık 20 dakika sürer; bu sırada oyun açma, bilgisayarı boşta bırak."/>
+                                                   Text="Kartını kendisi test eder ve FPS kaybetmeden en düşük voltajlı, en serin ayarı bulur. Başka bir ayar yapmana gerek yok, sadece Başlat'a bas. Yaklaşık 20 dakika sürer; bu sırada oyun açma, bilgisayarı boşta bırak."/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="12,0,0,0">
                                         <Button Style="{StaticResource PillButton}" Content="Kaldığı yerden devam" Margin="0,0,8,0" Command="{Binding ResumeTuneCommand}"
