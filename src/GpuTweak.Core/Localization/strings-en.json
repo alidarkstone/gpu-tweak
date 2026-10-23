@@ -199,7 +199,6 @@
  "Sonuç": "Result",
  "Otomatik ayar çalışınca her denenen değer burada bir satır olarak görünür.": "Each value tried by auto-tune appears here as a row.",
  "Kartını kendisi test eder. Hedefi seç ve Başlat'a bas. Yaklaşık 20 dakika sürer; bu sırada oyun açma, bilgisayarı boşta bırak.": "Tests your card by itself. Pick a goal and press Start. Takes about 20 minutes; don't play games meanwhile, leave the PC idle.",
- "Serin ve sessiz": "Cool and quiet",
  "Verimli": "Efficient",
  "Overclock: saat kilidi yok, güç limiti kartın izin verdiği en yüksek değerde. Çekirdek hızı hatasız kaldığı yere kadar artırılır. FPS biraz artar, kart biraz daha ısınır.": "Overclock: no clock lock, power limit at the highest value the card allows. The core clock is raised as far as it stays error-free. Slightly more FPS, the card runs a bit warmer.",
  "Hız stok boost'un %6 altında kilitlenir ve voltaj düşürülür. FPS biraz düşer, güç ve ısı belirgin azalır.": "The clock is locked 6% below stock boost and the voltage is lowered. FPS drops a little, power and heat drop noticeably.",
@@ -207,5 +206,17 @@
  "Otomatik OC": "Auto OC",
  "Otomatik Verimli": "Auto Efficient",
  " Uygulandı ve \"{0}\" profili olarak kaydedildi.": " Applied and saved as the \"{0}\" profile.",
- "Tatlı nokta: çekirdek +{0} MHz, güç limiti {1} W.": "Sweet spot: core +{0} MHz, power limit {1} W."
+ "Tatlı nokta: çekirdek +{0} MHz, güç limiti {1} W.": "Sweet spot: core +{0} MHz, power limit {1} W.",
+ "Undervolt tatlı nokta": "Undervolt sweet spot",
+ "Stres testi": "Stress test",
+ "Şu anki ayarlarla 15 dakika tam yük. Her hesap kontrol edilir; ilk hatada durur.": "15 minutes of full load with the current settings. Every calculation is checked; stops at the first error.",
+ "Stres testi çalışıyor": "Stress test running",
+ "Stres testi: {0}. dakika / {1:0}": "Stress test: minute {0} of {1:0}",
+ "{0}. dakika": "Minute {0}",
+ "{0:0} dk · maks {1:0}° · ort. {2:0} W · ort. {3} MHz · en düşük performans %{4:0}": "{0:0} min · max {1:0}° · avg {2:0} W · avg {3} MHz · lowest performance {4:0}%",
+ "Stres testi geçti: hiç hata yok.": "Stress test passed: no errors.",
+ "Stres testi durduruldu.": "Stress test stopped.",
+ "Stres testi geçemedi: {0}.": "Stress test failed: {0}.",
+ "Bu ayarlar stres testinde hata verdi, kart varsayılan ayarlara döndürüldü. Otomatik ayarı çalıştır ya da çekirdek offset'i düşür.": "These settings failed the stress test, so the card is back at default settings. Run auto-tune or lower the core offset.",
+ "Kart varsayılan ayarlarda bile hata verdi. Sürücüyü, soğutmayı ve güç kablolarını kontrol et.": "The card failed even at default settings. Check the driver, cooling and power cables."
 }

@@ -145,6 +145,9 @@
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="12,0,0,0">
                                         <Button Style="{StaticResource PillButton}" local:Loc.Content="Kaldığı yerden devam" Margin="0,0,8,0" Command="{Binding ResumeTuneCommand}"
                                                 Visibility="{Binding HasPendingJournal, Converter={StaticResource BoolToVisibility}}"/>
+                                        <Button Style="{StaticResource PillButton}" local:Loc.Content="Stres testi" Margin="0,0,8,0" Command="{Binding StartStressCommand}"
+                                                local:Loc.ToolTip="Şu anki ayarlarla 15 dakika tam yük. Her hesap kontrol edilir; ilk hatada durur."
+                                                Visibility="{Binding IsTuning, Converter={x:Static local:Converters.FalseToVisible}}"/>
                                         <Button Style="{StaticResource PrimaryButton}" local:Loc.Content="Başlat" Command="{Binding StartTuneCommand}"
                                                 Visibility="{Binding IsTuning, Converter={x:Static local:Converters.FalseToVisible}}"/>
                                         <Button Style="{StaticResource PillButton}" local:Loc.Content="Durdur" Command="{Binding StopTuneCommand}"
@@ -153,7 +156,7 @@
                                 </Grid>
                                 <Border CornerRadius="9" Background="{StaticResource FillBrush}" Padding="2" Margin="0,12,0,0" IsEnabled="{Binding CanChooseGoal}">
                                     <UniformGrid Columns="3">
-                                        <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Serin ve sessiz" IsChecked="{Binding IsGoalCool, Mode=OneWay}" Command="{Binding SetGoalCommand}" CommandParameter="Cool"/>
+                                        <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Undervolt tatlı nokta" IsChecked="{Binding IsGoalCool, Mode=OneWay}" Command="{Binding SetGoalCommand}" CommandParameter="Cool"/>
                                         <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Performans" IsChecked="{Binding IsGoalPerformance, Mode=OneWay}" Command="{Binding SetGoalCommand}" CommandParameter="Performance"/>
                                         <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Verimli" IsChecked="{Binding IsGoalEfficient, Mode=OneWay}" Command="{Binding SetGoalCommand}" CommandParameter="Efficient"/>
                                     </UniformGrid>

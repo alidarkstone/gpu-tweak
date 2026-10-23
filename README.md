@@ -26,11 +26,11 @@ RivaTuner/Afterburner yeteneklerinde ama çok daha sade, kartına zarar vermemek
 
 | Hedef | Ne yapar | Sonuç |
 |---|---|---|
-| Serin ve sessiz | Undervolt: hız stokta kilitli, voltaj düşer | Aynı FPS, daha serin ve sessiz |
+| Undervolt tatlı nokta | Hız stok boost'ta kilitli, voltaj FPS düşmeden gidebildiği en alta iner | Aynı FPS, daha serin ve sessiz |
 | Performans | Overclock: kilit yok, güç limiti vBIOS maksimumu, çekirdek offset artar | Biraz daha fazla FPS, biraz daha sıcak |
 | Verimli | Hız stok boost'un %6 altında kilitli, voltaj düşer | FPS biraz düşer, güç ve ısı belirgin azalır |
 
-**Başlat** düğmesi kartı kendi kendine test eder (~20 dk). Aşağıdaki adımlar "Serin ve sessiz" içindir; diğer hedefler aynı hata kontrolünü kullanır:
+**Başlat** düğmesi kartı kendi kendine test eder (~20 dk). Aşağıdaki adımlar "Undervolt tatlı nokta" içindir; diğer hedefler aynı hata kontrolünü kullanır:
 
 1. Stok ayarlarda, hesap sonuçlarını kendisi doğrulayan bir DirectX 11 yükü çalıştırır ve referans sonuçları kaydeder.
 2. Kartın stokta ulaştığı en yüksek boost hızını ölçer ve max clock'u oraya kilitler, böylece hiçbir oyunda stoktan yavaş çalışmaz.
@@ -39,6 +39,10 @@ RivaTuner/Afterburner yeteneklerinde ama çok daha sade, kartına zarar vermemek
 5. Sonuç uygulanır ve "Otomatik UV" profili olarak kaydedilir. Birkaç gün oyunlarda sorunsuz giderse profili "Stabil" olarak işaretle.
 
 Test sırasında bilgisayar kilitlenirse bir sonraki açılışta program stok ayarlarla başlar. "Kaldığı yerden devam" denince kilitlenen değer kararsız sayılır.
+
+## Stres testi
+
+**Stres testi** düğmesi, şu an karttaki ayarlarla 15 dakika tam yük uygular (FurMark gibi), ama her hesabın sonucunu da kontrol eder. İlk hesap hatasında, sürücü sıfırlanmasında veya 85°C'de durur. Sonunda süre, maksimum sıcaklık, ortalama güç ve hız, en düşük performans gösterilir. Özel ayarlar hata verirse kart hemen varsayılana döndürülür.
 
 ## Oyun kararlılığı
 

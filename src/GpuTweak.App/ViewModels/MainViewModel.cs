@@ -73,6 +73,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         StartTuneCommand = new RelayCommand(() => _ = StartTuneAsync(resume: false), () => !IsTuning && !IsConfirmPending);
         ResumeTuneCommand = new RelayCommand(() => _ = StartTuneAsync(resume: true), () => !IsTuning && PendingJournal is not null);
         StopTuneCommand = new RelayCommand(() => _tuneCts?.Cancel(), () => IsTuning);
+        StartStressCommand = new RelayCommand(() => _ = StartStressAsync(), () => !IsTuning && !IsConfirmPending);
         SaveProfileCommand = new RelayCommand(SaveProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
         LoadProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { LoadIntoEditor(u.Settings); _activeProfileName = u.Name; Status = L.F("\"{0}\" yüklendi. Uygula'ya basınca karta yazılır.", u.Name); } });
         DeleteProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { _profileStore.Delete(u.Name); Profiles.Remove(u); } });
@@ -354,11 +355,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             OnPropertyChanged();
         }
     }
-    public string MonitorTitle => IsTuning ? L.T("Otomatik ayar çalışıyor") : TuneResult is { Success: true } ? L.T("Otomatik ayar bitti") : L.T("Otomatik ayar");
+    private bool _isStressTest;
+    public string MonitorTitle => IsTuning && _isStressTest ? L.T("Stres testi çalışıyor") : IsTuning ? L.T("Otomatik ayar çalışıyor") : TuneResult is { Success: true } ? L.T("Otomatik ayar bitti") : L.T("Otomatik ayar");
 
     public ICommand StartTuneCommand { get; }
     public ICommand ResumeTuneCommand { get; }
     public ICommand StopTuneCommand { get; }
+    public ICommand StartStressCommand { get; }
     public ICommand ApplyCommand { get; }
     public ICommand ResetCommand { get; }
     public ICommand ConfirmCommand { get; }
@@ -785,6 +788,74 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SiliconText = si.ReachedSearchLimit
             ? L.F("Bu çip testin üst sınırına kadar hatasız çalıştı; gerçek payı daha da yüksek olabilir. Ölçüm: {0:dd.MM.yyyy}.", si.TestedAt.LocalDateTime)
             : L.F("Bu çip, stok hızında +{0} MHz'e kadar hatasız çalıştı; üstünde hata verdi. Günlük kullanımda {1} MHz güvenlik payı bırakıldı. Ölçüm: {2:dd.MM.yyyy}.", si.HighestPassedOffsetMHz, si.HighestPassedOffsetMHz - si.AppliedOffsetMHz, si.TestedAt.LocalDateTime);
+    }
+
+    /// <summary>
+    /// 15-minute burn-in with the settings that are on now. An error with custom settings puts the card back
+    /// to stock right away, because those settings just proved unstable.
+    /// </summary>
+    private async Task StartStressAsync()
+    {
+        var settings = _active;
+        _isStressTest = true;
+        TuneResult = null;
+        TuneMessage = null;
+        IsTuning = true;
+        _tuneCts = new CancellationTokenSource();
+        if (!settings.IsStock) _crashGuard.MarkCustomApplied(_activeProfileName);
+        var progress = new Progress<TuneProgress>(p => { TuneProgress = p.Fraction; TuneMessage = p.Message; });
+
+        StressTestResult result;
+        try
+        {
+            using var stress = new D3D11StressTest();
+            Monitor.Start(stress);
+            IsMonitorVisible = true;
+            var runner = new StressTestRunner(_backend, stress, progress: progress, steps: new Progress<TuneStep>(Monitor.AddStep));
+            result = await Task.Run(() => runner.RunAsync(settings, _tuneCts.Token));
+        }
+        catch (Exception e)
+        {
+            result = new StressTestResult(false, false, e.Message, TimeSpan.Zero, 0, 0, 0, 1);
+        }
+        finally
+        {
+            Monitor.Stop();
+            IsTuning = false;
+            _isStressTest = false;
+            OnPropertyChanged(nameof(MonitorTitle));
+            _tuneCts.Dispose();
+            _tuneCts = null;
+        }
+        // A driver reset during the test is already reported here; it is not a gaming problem.
+        _stability.SkipToNow();
+
+        var summary = L.F("{0:0} dk · maks {1:0}° · ort. {2:0} W · ort. {3} MHz · en düşük performans %{4:0}",
+            result.Elapsed.TotalMinutes, result.MaxTemperatureC, result.AvgPowerW, result.AvgCoreClockMHz, 100 * result.LowestRelativeScore);
+        if (result.Passed)
+        {
+            TuneMessage = L.T("Stres testi geçti: hiç hata yok.") + " " + summary;
+            Status = null;
+        }
+        else if (result.Cancelled)
+        {
+            TuneMessage = L.T("Stres testi durduruldu.") + " " + summary;
+        }
+        else
+        {
+            TuneMessage = L.F("Stres testi geçemedi: {0}.", result.Failure) + " " + summary;
+            if (!settings.IsStock)
+            {
+                ResetToStock();
+                Status = L.T("Bu ayarlar stres testinde hata verdi, kart varsayılan ayarlara döndürüldü. Otomatik ayarı çalıştır ya da çekirdek offset'i düşür.");
+                StatusIsWarning = true;
+            }
+            else
+            {
+                Status = L.T("Kart varsayılan ayarlarda bile hata verdi. Sürücüyü, soğutmayı ve güç kablolarını kontrol et.");
+                StatusIsWarning = true;
+            }
+        }
     }
 
     private static void OpenUrl(string url)
