@@ -34,7 +34,7 @@ public sealed class TuneMonitorViewModel : ObservableObject
     public WriteableBitmap ErrorMap { get; }
     public ObservableCollection<TuneStepRow> Steps { get; } = [];
 
-    private string _errorsText = "Test çalışmıyor", _patternText = "", _elapsed = "0:00";
+    private string _errorsText = "0", _patternText = "", _elapsed = "0:00";
     private string _clock = "–", _temperature = "–", _power = "–", _load = "–";
     private bool _hasErrors;
     private PointCollection _clockPoints = [], _temperaturePoints = [], _powerPoints = [];
@@ -62,7 +62,7 @@ public sealed class TuneMonitorViewModel : ObservableObject
         _drawn = null;
         _startedAt = DateTimeOffset.Now;
         Steps.Clear();
-        ErrorsText = "Hazırlanıyor…";
+        ErrorsText = "0";
         HasMap = false;
         ArtifactsFound = 0;
         HasErrors = false;
@@ -128,9 +128,7 @@ public sealed class TuneMonitorViewModel : ObservableObject
 
         PatternText = snapshot.Pattern == StressPattern.Heavy ? "Ağır yük" : snapshot.Pattern == StressPattern.Transient ? "Dalgalı yük" : "Karışık yük";
         HasErrors = snapshot.Errors > 0;
-        ErrorsText = snapshot.Errors == 0
-            ? $"✓ Görüntü temiz, hatalı hesap yok ({snapshot.Checked:N0} sonuç kontrol edildi)"
-            : $"✗ Bu adımda {snapshot.Errors:N0} hatalı hesap bulundu. Ayar kararsız, program bir adım geri gidecek.";
+        ErrorsText = $"{snapshot.TotalChecked:N0}";
 
         // The animated preview the card is rendering. Wrong results are counted below the power chart.
         ArtifactsFound = snapshot.ArtifactsFound;

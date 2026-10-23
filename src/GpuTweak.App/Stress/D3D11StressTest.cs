@@ -17,7 +17,7 @@ namespace GpuTweak.App.Stress;
 /// </summary>
 /// <summary>What the live panel draws: the latest results and which threads have ever been wrong in this run.</summary>
 /// <param name="ArtifactsFound">Batches with wrong results since the stress test was created (across all tuning steps).</param>
-public sealed record StressSnapshot(uint[] Results, byte[] ErrorMask, long Checked, long Errors, StressPattern Pattern, int[]? Image, int ArtifactsFound);
+public sealed record StressSnapshot(uint[] Results, byte[] ErrorMask, long Checked, long Errors, StressPattern Pattern, int[]? Image, int ArtifactsFound, long TotalChecked);
 
 public sealed class D3D11StressTest : IStressTest
 {
@@ -111,6 +111,7 @@ public sealed class D3D11StressTest : IStressTest
     private byte[] _errorMask = new byte[ThreadCount];
     private long _checked, _errors;
     private int _artifactsFound;
+    private long _totalChecked;
     private StressPattern _pattern;
 
     /// <summary>Latest state for the live panel. Arrays are replaced, never mutated after publishing, so reading from another thread is safe.</summary>
@@ -214,8 +215,9 @@ public sealed class D3D11StressTest : IStressTest
             _artifactsFound++;
         }
         _checked += result.Length;
+        _totalChecked += result.Length;
         _errors += errors;
-        Snapshot = new StressSnapshot(result, _errorMask, _checked, _errors, _pattern, DrawPreview(), _artifactsFound);
+        Snapshot = new StressSnapshot(result, _errorMask, _checked, _errors, _pattern, DrawPreview(), _artifactsFound, _totalChecked);
         reason = errors == 0 ? "" : $"{errors:N0} hesap hatası";
         return errors == 0;
     }

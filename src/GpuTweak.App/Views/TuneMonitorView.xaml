@@ -27,21 +27,12 @@
                                HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24" Foreground="{StaticResource TertiaryTextBrush}"
                                Visibility="{Binding Monitor.HasMap, Converter={x:Static local:Converters.FalseToVisible}}"/>
                 </Grid>
-                <Border CornerRadius="8" Padding="10,6" Margin="0,8,0,0">
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Setter Property="Background" Value="#2230D158"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Monitor.HasErrors}" Value="True">
-                                    <Setter Property="Background" Value="#33FF453A"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                    <TextBlock Text="{Binding Monitor.ErrorsText}" TextWrapping="Wrap" FontSize="12"/>
-                </Border>
+                <Grid Margin="0,10,0,0">
+                    <TextBlock Text="Kontrol edilen hesap" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Monitor.ErrorsText}" FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                </Grid>
                 <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,0"
-                           Text="Kart bu animasyonu çizerken arka planda milyonlarca hesap yapıyor ve her birinin doğruluğu kontrol ediliyor. Görüntü akıyor ve kutu yeşilse her şey yolunda."/>
+                           Text="Kart bu animasyonu çizerken arka planda milyonlarca hesap yapıyor ve her birinin doğruluğu kontrol ediliyor."/>
             </StackPanel>
 
             <!-- Live sensor charts -->
