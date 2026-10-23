@@ -67,7 +67,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         StartTuneCommand = new RelayCommand(() => _ = StartTuneAsync(resume: false), () => !IsTuning && !IsConfirmPending);
         ResumeTuneCommand = new RelayCommand(() => _ = StartTuneAsync(resume: true), () => !IsTuning && PendingJournal is not null);
         StopTuneCommand = new RelayCommand(() => _tuneCts?.Cancel(), () => IsTuning);
-        OpenMonitorCommand = new RelayCommand(() => TuneStarted?.Invoke());
+        ToggleMonitorCommand = new RelayCommand(() => IsMonitorVisible = !IsMonitorVisible);
         SaveProfileCommand = new RelayCommand(SaveProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
         LoadProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { LoadIntoEditor(u.Settings); _activeProfileName = u.Name; Status = $"\"{u.Name}\" yüklendi. Uygula'ya basınca karta yazılır."; } });
         DeleteProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { _profileStore.Delete(u.Name); Profiles.Remove(u); } });
@@ -160,12 +160,30 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string? _tuneMessage;
     private TuneResult? _tuneResult;
     private TuneJournal? _pendingJournal;
-    public bool IsTuning { get => _isTuning; private set { if (Set(ref _isTuning, value)) CommandManager.InvalidateRequerySuggested(); } }
+    public bool IsTuning
+    {
+        get => _isTuning;
+        private set
+        {
+            if (!Set(ref _isTuning, value)) return;
+            OnPropertyChanged(nameof(MonitorTitle));
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
     public double TuneProgress { get => _tuneProgress; private set => Set(ref _tuneProgress, value); }
     public string? TuneMessage { get => _tuneMessage; private set => Set(ref _tuneMessage, value); }
     public TuneJournal? PendingJournal { get => _pendingJournal; private set { if (Set(ref _pendingJournal, value)) OnPropertyChanged(nameof(HasPendingJournal)); } }
     public bool HasPendingJournal => PendingJournal is not null;
-    public TuneResult? TuneResult { get => _tuneResult; private set { if (Set(ref _tuneResult, value)) OnPropertyChanged(nameof(HasTuneResult)); } }
+    public TuneResult? TuneResult
+    {
+        get => _tuneResult;
+        private set
+        {
+            if (!Set(ref _tuneResult, value)) return;
+            OnPropertyChanged(nameof(HasTuneResult));
+            OnPropertyChanged(nameof(MonitorTitle));
+        }
+    }
     public bool HasTuneResult => TuneResult is { Success: true };
     public string TuneSummary => TuneResult is { Success: true } r
         ? $"Güç {r.BaselinePowerW:0} W → {r.TunedPowerW:0} W   ·   Sıcaklık {r.BaselineTemperatureC:0}° → {r.TunedTemperatureC:0}°   ·   Performans %{100 * r.TunedScore / r.BaselineScore:0}"
@@ -173,13 +191,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public TuneMonitorViewModel Monitor { get; } = new();
 
-    /// <summary>Raised when a tuning run starts, so the window can open the live panel.</summary>
-    public event Action? TuneStarted;
+    private bool _isMonitorVisible;
+    /// <summary>The live panel replaces the dashboard inside the main window while this is true.</summary>
+    public bool IsMonitorVisible { get => _isMonitorVisible; set => Set(ref _isMonitorVisible, value); }
+    public string MonitorTitle => IsTuning ? "Otomatik ayar çalışıyor" : TuneResult is { Success: true } ? "Otomatik ayar bitti" : "Otomatik ayar";
 
     public ICommand StartTuneCommand { get; }
     public ICommand ResumeTuneCommand { get; }
     public ICommand StopTuneCommand { get; }
-    public ICommand OpenMonitorCommand { get; }
+    public ICommand ToggleMonitorCommand { get; }
     public ICommand ApplyCommand { get; }
     public ICommand ResetCommand { get; }
     public ICommand ConfirmCommand { get; }
@@ -412,7 +432,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             using var stress = new D3D11StressTest();
             Monitor.Start(stress);
-            TuneStarted?.Invoke();
+            IsMonitorVisible = true;
             var tuner = new AutoTuner(_backend, stress, _dataDirectory, progress: progress, steps: steps);
             result = await Task.Run(() => tuner.RunAsync(journal, _tuneCts.Token));
         }

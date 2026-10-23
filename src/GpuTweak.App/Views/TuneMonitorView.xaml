@@ -1,0 +1,177 @@
+<UserControl x:Class="GpuTweak.App.Views.TuneMonitorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:GpuTweak.App.Views">
+    <Viewbox Stretch="Uniform" VerticalAlignment="Top">
+        <Grid Width="1180" Margin="24,20,24,24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Phase and progress -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{Binding MonitorTitle}" Style="{StaticResource SectionTitle}"/>
+                            <TextBlock Text="{Binding TuneMessage}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                            <TextBlock Text="{Binding Monitor.Elapsed}" Style="{StaticResource MetricValue}" FontSize="22" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <Button Style="{StaticResource PillButton}" Content="Durdur" Command="{Binding StopTuneCommand}" Margin="0,0,8,0"
+                                    Visibility="{Binding IsTuning, Converter={StaticResource BoolToVisibility}}"/>
+                            <Button Style="{StaticResource PrimaryButton}" Content="Ana ekran" Command="{Binding ToggleMonitorCommand}"/>
+                        </StackPanel>
+                    </Grid>
+                    <ProgressBar Style="{StaticResource LevelBar}" Value="{Binding TuneProgress, Mode=OneWay}" Margin="0,14,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="14"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- GPU result map -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel Width="420">
+                        <Grid>
+                            <TextBlock Text="GPU hesap haritası" Style="{StaticResource SectionTitle}"/>
+                            <TextBlock Text="{Binding Monitor.PatternText}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,10"
+                                   Text="Her nokta GPU'nun yaptığı hesapların sonucu. Hepsi stokta kaydedilen doğru cevapla karşılaştırılıyor. Voltaj yetersiz kalırsa hatalı noktalar kırmızı yanar. Bu, oyunda artifact ya da çökme görmeden çok önce yakalanan ilk işarettir."/>
+                        <Border CornerRadius="10" ClipToBounds="True" Background="Black">
+                            <Image Source="{Binding Monitor.ErrorMap}" Width="420" Height="420" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                        </Border>
+                        <Border CornerRadius="8" Padding="10,6" Margin="0,10,0,0">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="#2230D158"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Monitor.HasErrors}" Value="True">
+                                            <Setter Property="Background" Value="#33FF453A"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{Binding Monitor.ErrorsText}" TextWrapping="Wrap"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Live sensors -->
+                <Border Grid.Column="2" Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Canlı sensörler" Style="{StaticResource SectionTitle}" Margin="0,0,0,12"/>
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Çekirdek" Style="{StaticResource Caption}"/>
+                                <TextBlock Text="{Binding Monitor.Clock}" Style="{StaticResource MetricValue}" FontSize="22"/>
+                            </StackPanel>
+                            <Border Grid.Column="1" Background="#14FFFFFF" CornerRadius="8" Height="86" Padding="8">
+                                <Polyline Points="{Binding Monitor.ClockPoints}" Stroke="{StaticResource AccentBrush}" StrokeThickness="2" Stretch="None"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Sıcaklık" Style="{StaticResource Caption}"/>
+                                <TextBlock Text="{Binding Monitor.Temperature}" Style="{StaticResource MetricValue}" FontSize="22"/>
+                            </StackPanel>
+                            <Border Grid.Column="1" Background="#14FFFFFF" CornerRadius="8" Height="86" Padding="8">
+                                <Polyline Points="{Binding Monitor.TemperaturePoints}" Stroke="{StaticResource OrangeBrush}" StrokeThickness="2" Stretch="None"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Güç" Style="{StaticResource Caption}"/>
+                                <TextBlock Text="{Binding Monitor.Power}" Style="{StaticResource MetricValue}" FontSize="22"/>
+                                <TextBlock Style="{StaticResource Caption}"><Run Text="Yük "/><Run Text="{Binding Monitor.Load, Mode=OneWay}"/></TextBlock>
+                            </StackPanel>
+                            <Border Grid.Column="1" Background="#14FFFFFF" CornerRadius="8" Height="86" Padding="8">
+                                <Polyline Points="{Binding Monitor.PowerPoints}" Stroke="{StaticResource GreenBrush}" StrokeThickness="2" Stretch="None"/>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Step results -->
+            <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0">
+                <StackPanel>
+                    <TextBlock Text="Adım sonuçları" Style="{StaticResource SectionTitle}" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="220"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="120"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Ayar" Style="{StaticResource Caption}"/>
+                        <TextBlock Grid.Column="1" Text="Sonuç" Style="{StaticResource Caption}"/>
+                        <TextBlock Grid.Column="2" Text="Ort. güç" Style="{StaticResource Caption}"/>
+                        <TextBlock Grid.Column="3" Text="Maks. sıcaklık" Style="{StaticResource Caption}"/>
+                        <TextBlock Grid.Column="4" Text="Performans" Style="{StaticResource Caption}"/>
+                    </Grid>
+                    <TextBlock Text="Stok ölçümü bitince ilk satır burada görünecek." Style="{StaticResource Caption}" Foreground="{StaticResource TertiaryTextBrush}"
+                               Visibility="{Binding Monitor.Steps.Count, Converter={x:Static local:Converters.ZeroToVisible}}"/>
+                    <ItemsControl ItemsSource="{Binding Monitor.Steps}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="220"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="110"/>
+                                        <ColumnDefinition Width="110"/>
+                                        <ColumnDefinition Width="120"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Result}" TextTrimming="CharacterEllipsis">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                <Setter Property="Foreground" Value="{StaticResource RedBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Passed}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource GreenBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Grid.Column="2" Text="{Binding Power}"/>
+                                    <TextBlock Grid.Column="3" Text="{Binding Temperature}"/>
+                                    <TextBlock Grid.Column="4" Text="{Binding Performance}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Viewbox>
+</UserControl>

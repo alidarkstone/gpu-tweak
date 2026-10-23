@@ -9,7 +9,8 @@
         UseLayoutRounding="True">
     <Grid x:Name="Root">
         <!-- The whole layout is designed at a fixed size and scaled to fit the window, so it never needs scrolling. -->
-        <Viewbox Stretch="Uniform" VerticalAlignment="Top">
+        <Viewbox Stretch="Uniform" VerticalAlignment="Top"
+                 Visibility="{Binding IsMonitorVisible, Converter={x:Static local:Converters.FalseToVisible}}">
             <Grid Width="1400" Margin="28,22,28,28">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -128,8 +129,10 @@
                                                 Visibility="{Binding HasPendingJournal, Converter={StaticResource BoolToVisibility}}"/>
                                         <Button Style="{StaticResource PrimaryButton}" Content="Başlat" Command="{Binding StartTuneCommand}"
                                                 Visibility="{Binding IsTuning, Converter={x:Static local:Converters.FalseToVisible}}"/>
-                                        <Button Style="{StaticResource PillButton}" Content="Canlı panel" Command="{Binding OpenMonitorCommand}" Margin="0,0,8,0"
+                                        <Button Style="{StaticResource PillButton}" Content="Canlı panel" Command="{Binding ToggleMonitorCommand}" Margin="0,0,8,0"
                                                 Visibility="{Binding IsTuning, Converter={StaticResource BoolToVisibility}}"/>
+                                        <Button Style="{StaticResource PillButton}" Content="Sonuçları gör" Command="{Binding ToggleMonitorCommand}" Margin="0,0,8,0"
+                                                Visibility="{Binding HasTuneResult, Converter={StaticResource BoolToVisibility}}"/>
                                         <Button Style="{StaticResource PillButton}" Content="Durdur" Command="{Binding StopTuneCommand}"
                                                 Visibility="{Binding IsTuning, Converter={StaticResource BoolToVisibility}}"/>
                                     </StackPanel>
@@ -393,8 +396,12 @@
             </Grid>
         </Viewbox>
 
+        <!-- Live auto-tune panel, shown in place of the dashboard -->
+        <local:TuneMonitorView Visibility="{Binding IsMonitorVisible, Converter={StaticResource BoolToVisibility}}"/>
+
         <!-- Bottom area: status toast and confirmation banner -->
-        <StackPanel VerticalAlignment="Bottom" Margin="28,0,28,20">
+        <StackPanel VerticalAlignment="Bottom" Margin="28,0,28,20"
+                    Visibility="{Binding IsMonitorVisible, Converter={x:Static local:Converters.FalseToVisible}}">
             <Border CornerRadius="12" Padding="14,10" Margin="0,0,0,10" MaxWidth="760"
                     Visibility="{Binding Status, Converter={x:Static local:Converters.NotEmptyToVisibility}}">
                 <Border.Style>
