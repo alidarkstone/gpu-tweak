@@ -91,6 +91,9 @@ public sealed class NvmlBackend : IGpuBackend
     }
 
     private bool _memoryTemperatureUnsupported;
+    private DateTime _memoryTemperatureRetryAt;
+    /// <summary>Some cards answer "not supported" while idle and report the value under load, so ask again now and then.</summary>
+    private static readonly TimeSpan MemoryTemperatureRetry = TimeSpan.FromSeconds(30);
     private double? _lastMemoryTemperature;
     private DateTime _lastMemoryTemperatureAt;
     /// <summary>The sensor sometimes gives no answer when the card idles; bridge short gaps with the last reading.</summary>
@@ -99,7 +102,7 @@ public sealed class NvmlBackend : IGpuBackend
     /// <summary>VRAM temperature, when the card reports it. Asked once more only if the first answer was not "not supported".</summary>
     private double? ReadMemoryTemperature()
     {
-        if (_memoryTemperatureUnsupported) return null;
+        if (_memoryTemperatureUnsupported && DateTime.UtcNow < _memoryTemperatureRetryAt) return null;
         try
         {
             var values = new[] { new Nvml.FieldValue { FieldId = Nvml.FieldMemoryTemperature } };
@@ -114,12 +117,14 @@ public sealed class NvmlBackend : IGpuBackend
                     return celsius;
                 }
             }
-            _memoryTemperatureUnsupported = _lastMemoryTemperature is null
-                && (result is Nvml.Return.NotSupported || values[0].Result is Nvml.Return.NotSupported);
+            _memoryTemperatureUnsupported = result is Nvml.Return.NotSupported || values[0].Result is Nvml.Return.NotSupported;
+            _memoryTemperatureRetryAt = DateTime.UtcNow + MemoryTemperatureRetry;
         }
         catch (EntryPointNotFoundException)
         {
+            // Old driver without the call: never ask again.
             _memoryTemperatureUnsupported = true;
+            _memoryTemperatureRetryAt = DateTime.MaxValue;
         }
         return DateTime.UtcNow - _lastMemoryTemperatureAt < MemoryTemperatureHold ? _lastMemoryTemperature : null;
     }
