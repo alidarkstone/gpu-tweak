@@ -447,14 +447,16 @@
                                                         <Button Style="{StaticResource LinkButton}" local:Loc.Content="Uygula" local:Loc.ToolTip="Bu profili karta uygula (15 saniye içinde onay istenir)"
                                                                 Command="{Binding DataContext.LoadProfileCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
                                                         <Button Command="{Binding DataContext.ToggleStableCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
-                                                                local:Loc.ToolTip="Oyunlarda test ettikten sonra stabil olarak işaretle">
+>
                                                             <Button.Style>
                                                                 <Style TargetType="Button" BasedOn="{StaticResource LinkButton}">
-                                                                    <Setter Property="Content" Value="{local:T 'Stabil değil'}"/>
+                                                                    <Setter Property="Content" Value="{local:T 'Stabil işaretle'}"/>
+                                                                    <Setter Property="ToolTip" Value="{local:T 'Oyunlarda sorunsuz çalıştıysa tıkla, profil stabil olarak işaretlenir'}"/>
                                                                     <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding IsStable}" Value="True">
                                                                             <Setter Property="Content" Value="{local:T '✓ Stabil'}"/>
+                                                                            <Setter Property="ToolTip" Value="{local:T 'Bu profil stabil olarak işaretli. İşareti kaldırmak için tıkla'}"/>
                                                                             <Setter Property="Foreground" Value="{StaticResource GreenBrush}"/>
                                                                         </DataTrigger>
                                                                     </Style.Triggers>
