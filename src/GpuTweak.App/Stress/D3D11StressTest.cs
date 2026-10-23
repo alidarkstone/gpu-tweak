@@ -15,8 +15,13 @@ namespace GpuTweak.App.Stress;
 /// The results recorded at stock are the reference; any later mismatch means the chip computed wrongly,
 /// which is the earliest sign of an unstable undervolt (it shows up well before a driver crash).
 /// </summary>
+/// <summary>What the live panel draws: the latest results and which threads have ever been wrong in this run.</summary>
+public sealed record StressSnapshot(uint[] Results, byte[] ErrorMask, long Checked, long Errors, StressPattern Pattern);
+
 public sealed class D3D11StressTest : IStressTest
 {
+    /// <summary>Results are 1024 × 1024, one pixel per GPU thread.</summary>
+    public const int MapSize = 1024;
     private const uint ThreadsPerGroup = 256;
     private const uint Groups = 4096;
     private const uint ThreadCount = ThreadsPerGroup * Groups;
@@ -55,6 +60,12 @@ public sealed class D3D11StressTest : IStressTest
     private ID3D11UnorderedAccessView? _view;
     private uint _iterations = 256;
     private uint[]? _reference;
+    private byte[] _errorMask = new byte[ThreadCount];
+    private long _checked, _errors;
+    private StressPattern _pattern;
+
+    /// <summary>Latest state for the live panel. Arrays are replaced, never mutated after publishing, so reading from another thread is safe.</summary>
+    public StressSnapshot? Snapshot { get; private set; }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct Params
@@ -84,6 +95,9 @@ public sealed class D3D11StressTest : IStressTest
     public Task<StressResult> RunAsync(StressPattern pattern, TimeSpan duration, CancellationToken cancellationToken) => Task.Run(() =>
     {
         if (_reference is null) throw new InvalidOperationException("PrepareAsync must run first.");
+        _errorMask = new byte[ThreadCount];
+        _checked = _errors = 0;
+        _pattern = pattern;
         var watch = Stopwatch.StartNew();
         double work = 0;
         double busySeconds = 0;
@@ -133,8 +147,18 @@ public sealed class D3D11StressTest : IStressTest
         var result = RunPasses(passes);
         var expected = Expected(passes);
         var errors = 0;
+        byte[]? mask = null;
         for (var i = 0; i < result.Length; i++)
-            if (result[i] != expected[i]) errors++;
+        {
+            if (result[i] == expected[i]) continue;
+            errors++;
+            mask ??= (byte[])_errorMask.Clone();
+            mask[i] = 1;
+        }
+        if (mask is not null) _errorMask = mask;
+        _checked += result.Length;
+        _errors += errors;
+        Snapshot = new StressSnapshot(result, _errorMask, _checked, _errors, _pattern);
         reason = errors == 0 ? "" : $"{errors:N0} hesap hatası";
         return errors == 0;
     }

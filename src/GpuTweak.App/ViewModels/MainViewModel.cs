@@ -67,6 +67,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         StartTuneCommand = new RelayCommand(() => _ = StartTuneAsync(resume: false), () => !IsTuning && !IsConfirmPending);
         ResumeTuneCommand = new RelayCommand(() => _ = StartTuneAsync(resume: true), () => !IsTuning && PendingJournal is not null);
         StopTuneCommand = new RelayCommand(() => _tuneCts?.Cancel(), () => IsTuning);
+        OpenMonitorCommand = new RelayCommand(() => TuneStarted?.Invoke());
         SaveProfileCommand = new RelayCommand(SaveProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
         LoadProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { LoadIntoEditor(u.Settings); _activeProfileName = u.Name; Status = $"\"{u.Name}\" yüklendi. Uygula'ya basınca karta yazılır."; } });
         DeleteProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { _profileStore.Delete(u.Name); Profiles.Remove(u); } });
@@ -170,9 +171,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ? $"Güç {r.BaselinePowerW:0} W → {r.TunedPowerW:0} W   ·   Sıcaklık {r.BaselineTemperatureC:0}° → {r.TunedTemperatureC:0}°   ·   Performans %{100 * r.TunedScore / r.BaselineScore:0}"
         : "";
 
+    public TuneMonitorViewModel Monitor { get; } = new();
+
+    /// <summary>Raised when a tuning run starts, so the window can open the live panel.</summary>
+    public event Action? TuneStarted;
+
     public ICommand StartTuneCommand { get; }
     public ICommand ResumeTuneCommand { get; }
     public ICommand StopTuneCommand { get; }
+    public ICommand OpenMonitorCommand { get; }
     public ICommand ApplyCommand { get; }
     public ICommand ResetCommand { get; }
     public ICommand ConfirmCommand { get; }
@@ -369,6 +376,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Load = s.LoadPercent is { } l ? $"{l}" : "–";
         LoadLevel = (s.LoadPercent ?? 0) / 100.0;
         Overlay.Update(s);
+        if (IsTuning) Monitor.OnSample(s);
 
         // While tuning, the tuner watches temperature itself (with a lower limit) and resets between steps.
         if (!IsTuning && _thermalGuard.ShouldRevert(s, IsCustomActive || IsConfirmPending))
@@ -397,11 +405,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             TuneMessage = p.Message;
         });
 
+        var steps = new Progress<TuneStep>(Monitor.AddStep);
+
         TuneResult result;
         try
         {
             using var stress = new D3D11StressTest();
-            var tuner = new AutoTuner(_backend, stress, _dataDirectory, progress: progress);
+            Monitor.Start(stress);
+            TuneStarted?.Invoke();
+            var tuner = new AutoTuner(_backend, stress, _dataDirectory, progress: progress, steps: steps);
             result = await Task.Run(() => tuner.RunAsync(journal, _tuneCts.Token));
         }
         catch (Exception e)
@@ -411,6 +423,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         finally
         {
+            Monitor.Stop();
             IsTuning = false;
             _tuneCts.Dispose();
             _tuneCts = null;

@@ -73,6 +73,7 @@ NVIDIA/AMD logoları ticari marka olduğu için exe içinde gelmez; widget'ta ma
 - [x] Güvenlik katmanı, profiller, overlay widget, Apple tarzı arayüz
 - [x] Otomatik ayar: hata doğrulamalı stres testiyle undervolt tatlı noktası
 - [x] Arayüz pencere boyutuna göre ölçeklenir, kaydırma gerekmez
+- [x] Canlı test paneli: GPU hesap haritası (hatalar kırmızı), canlı grafikler, adım sonuçları
 - [ ] FPS ve 1% low (PresentMon / ETW, enjeksiyonsuz)
 - [ ] Kaynaklı topluluk önerileri veritabanını doldurmak
 - [ ] AMD (ADLX)

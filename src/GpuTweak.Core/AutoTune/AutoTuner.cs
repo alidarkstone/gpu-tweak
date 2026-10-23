@@ -24,6 +24,9 @@ public enum TunePhase { Preparing, BoostProbe, Baseline, Searching, Validating, 
 
 public sealed record TuneProgress(TunePhase Phase, string Message, double Fraction, int? OffsetMHz = null);
 
+/// <summary>One finished measurement, for the live results table. Score is relative to stock (1.0 = same).</summary>
+public sealed record TuneStep(string Label, bool Passed, string? Reason, double RelativeScore, double AvgPowerW, double MaxTemperatureC);
+
 public sealed record TuneResult(
     bool Success,
     string Message,
@@ -53,9 +56,12 @@ public sealed class AutoTuner
     private readonly TunerOptions _options;
     private readonly string _dataDirectory;
     private readonly IProgress<TuneProgress>? _progress;
+    private readonly IProgress<TuneStep>? _steps;
 
-    public AutoTuner(IGpuBackend backend, IStressTest stress, string dataDirectory, TunerOptions? options = null, IProgress<TuneProgress>? progress = null)
+    public AutoTuner(IGpuBackend backend, IStressTest stress, string dataDirectory, TunerOptions? options = null,
+        IProgress<TuneProgress>? progress = null, IProgress<TuneStep>? steps = null)
     {
+        _steps = steps;
         _backend = backend;
         _stress = stress;
         _dataDirectory = dataDirectory;
@@ -109,6 +115,7 @@ public sealed class AutoTuner
             var baseline = await MeasureAsync(StressPattern.Heavy, _options.Baseline, ct);
             if (!baseline.Result.Passed) return Fail($"Stok ayarlarda hata: {baseline.Result.Failure}");
 
+            _steps?.Report(new TuneStep("Stok", true, null, 1, baseline.AvgPowerW, baseline.MaxTemperatureC));
             var maxClock = (int)(Math.Max(probe.HighClockMHz, baseline.HighClockMHz) / 15) * 15;
             if (maxClock <= 0) return Fail("Çekirdek hızı okunamadı.");
             journal = new TuneJournal(maxClock, baseline.Result.Score, baseline.AvgPowerW, baseline.MaxTemperatureC, 0, null, DateTimeOffset.Now);
@@ -161,6 +168,7 @@ public sealed class AutoTuner
             _backend.Apply(settings);
             var validation = await MeasureAsync(StressPattern.Mixed, _options.Validation, ct);
             var failure = Judge(validation, journal.BaselineScore);
+            ReportStep($"+{candidate} MHz (doğrulama)", failure, validation, journal.BaselineScore);
             if (failure is null)
             {
                 TuneJournal.Delete(_dataDirectory);
@@ -187,7 +195,9 @@ public sealed class AutoTuner
         {
             _backend.Apply(Settings(maxClock, offset));
             var measurement = await MeasureAsync(pattern, duration, ct);
-            return Judge(measurement, baselineScore);
+            var failure = Judge(measurement, baselineScore);
+            ReportStep($"+{offset} MHz", failure, measurement, baselineScore);
+            return failure;
         }
         finally
         {
@@ -262,6 +272,10 @@ public sealed class AutoTuner
         var high = clocks.Count == 0 ? 0 : clocks[(int)Math.Floor(0.95 * (clocks.Count - 1))];
         return new Measurement(result, power, temp, high, overheated);
     }
+
+    private void ReportStep(string label, string? failure, Measurement m, double baselineScore) =>
+        _steps?.Report(new TuneStep(label, failure is null, failure,
+            baselineScore > 0 ? m.Result.Score / baselineScore : 0, m.AvgPowerW, m.MaxTemperatureC));
 
     private static TuningSettings Settings(int maxClock, int offset) => new(CoreOffsetMHz: offset, MaxCoreClockMHz: maxClock);
 

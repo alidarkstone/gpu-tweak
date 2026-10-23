@@ -12,6 +12,7 @@ public partial class MainWindow : Window
     private readonly MainViewModel _viewModel;
     private readonly OverlayWindow _overlay;
     private GlobalHotKey? _hotKey;
+    private TuneMonitorWindow? _monitor;
 
     // Layout design size (see the Viewbox in MainWindow.xaml); used to open the window with the right proportions.
     private const double DesignWidth = 1400, DesignHeight = 960;
@@ -24,6 +25,7 @@ public partial class MainWindow : Window
         _overlay = new OverlayWindow(viewModel.Overlay);
 
         FitToScreen();
+        viewModel.TuneStarted += ShowMonitor;
 
         foreach (RadioButton corner in CornerPicker.Children)
             corner.IsChecked = (string)corner.Tag == viewModel.Overlay.Corner.ToString();
@@ -43,6 +45,7 @@ public partial class MainWindow : Window
         {
             _hotKey?.Dispose();
             _overlay.Close();
+            _monitor?.Close();
         };
     }
 
@@ -56,6 +59,17 @@ public partial class MainWindow : Window
         var scale = Math.Min(1.0, Math.Min(area.Width * 0.9 / DesignWidth, area.Height * 0.9 / DesignHeight));
         Width = DesignWidth * scale;
         Height = DesignHeight * scale;
+    }
+
+    private void ShowMonitor()
+    {
+        if (_monitor is null)
+        {
+            _monitor = new TuneMonitorWindow(_viewModel) { Owner = this };
+            _monitor.Closed += (_, _) => _monitor = null;
+            _monitor.Show();
+        }
+        _monitor.Activate();
     }
 
     private void OnCornerChecked(object sender, RoutedEventArgs e)

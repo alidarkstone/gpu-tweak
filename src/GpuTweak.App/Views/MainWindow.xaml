@@ -128,6 +128,8 @@
                                                 Visibility="{Binding HasPendingJournal, Converter={StaticResource BoolToVisibility}}"/>
                                         <Button Style="{StaticResource PrimaryButton}" Content="Başlat" Command="{Binding StartTuneCommand}"
                                                 Visibility="{Binding IsTuning, Converter={x:Static local:Converters.FalseToVisible}}"/>
+                                        <Button Style="{StaticResource PillButton}" Content="Canlı panel" Command="{Binding OpenMonitorCommand}" Margin="0,0,8,0"
+                                                Visibility="{Binding IsTuning, Converter={StaticResource BoolToVisibility}}"/>
                                         <Button Style="{StaticResource PillButton}" Content="Durdur" Command="{Binding StopTuneCommand}"
                                                 Visibility="{Binding IsTuning, Converter={StaticResource BoolToVisibility}}"/>
                                     </StackPanel>
