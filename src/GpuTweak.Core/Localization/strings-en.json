@@ -6,7 +6,6 @@
  "{0:N0} hesap hatası": "{0:N0} calculation errors",
  "sürücü sıfırlandı (0x{0:X8})": "driver was reset (0x{0:X8})",
  "DirectX hatası: {0}": "DirectX error: {0}",
- "\"{0}\" yüklendi. Uygula'ya basınca karta yazılır.": "\"{0}\" loaded. Press Apply to write it to the card.",
  "Otomatik ayar testi +{0} MHz'de bilgisayarı kilitledi. Bu değer kararsız sayıldı; kaldığı yerden devam edebilirsin.": "The auto-tune test locked up the PC at +{0} MHz. That value counts as unstable; you can resume where it stopped.",
  "Önceki otomatik ayar testi yarıda kaldı. Kaldığı yerden devam edebilirsin.": "The previous auto-tune test did not finish. You can resume where it stopped.",
  "Önceki oturum özel ayarlar açıkken beklenmedik şekilde kapandı. Güvenlik için varsayılan ayarlarla başlatıldı.": "The last session closed unexpectedly while custom settings were on. Started with default settings for safety.",
@@ -168,7 +167,6 @@
  "Windows ile başlat": "Start with Windows",
  "Bilgisayar açılınca program küçültülmüş başlar ve \"Otomatik: açık\" profili yeniden uygular. Ekran kartı ayarları her yeniden başlatmada sıfırlandığı için gerekli.": "When the PC starts, the app opens minimized and re-applies the \"Auto: on\" profile. Needed because GPU settings reset on every reboot.",
  "Ayarların kaydedildiği klasörü aç": "Open the settings folder",
- "Yükle": "Load",
  "Oyunlarda test ettikten sonra stabil olarak işaretle": "Mark as stable after testing in games",
  "Uygulama açılınca bu profili uygula": "Apply this profile when the app starts",
  "Sil": "Delete",
@@ -221,5 +219,13 @@
  "Kart varsayılan ayarlarda bile hata verdi. Sürücüyü, soğutmayı ve güç kablolarını kontrol et.": "The card failed even at default settings. Check the driver, cooling and power cables.",
  "Min · Ort · Maks": "Min · Avg · Max",
  "Bellek sıc.": "Mem temp",
- "Bellek: ": "Memory: "
+ "Bellek: ": "Memory: ",
+ "Bu profili karta uygula (15 saniye içinde onay istenir)": "Apply this profile to the card (you confirm within 15 seconds)",
+ "Stabil değil": "Not stable",
+ "✓ Stabil": "✓ Stable",
+ "Otomatik: kapalı": "Auto: off",
+ "Otomatik: açık": "Auto: on",
+ "Henüz kayıtlı profil yok. Ayarları yap, aşağıya bir ad yaz ve kaydet; profil burada bir satır olarak görünür ve tek tıkla geri uygulanır.": "No saved profiles yet. Set things up, type a name below and save; the profile shows up here as a row and can be applied again with one click.",
+ "Profil adı yaz…": "Type a profile name…",
+ "Yükle": "Load"
 }

@@ -32,9 +32,9 @@ public sealed class LocalizationTests
                 if (!table.ContainsKey(key)) missing.Add(key);
             }
         foreach (var file in Directory.EnumerateFiles(src, "*.xaml", SearchOption.AllDirectories))
-            foreach (Match m in Regex.Matches(File.ReadAllText(file), @"local:Loc\.\w+=""([^""]*)"""))
+            foreach (Match m in Regex.Matches(File.ReadAllText(file), @"local:Loc\.\w+=""([^""]*)""|\{local:T '?([^}']*)'?\}"))
             {
-                var key = System.Net.WebUtility.HtmlDecode(m.Groups[1].Value);
+                var key = System.Net.WebUtility.HtmlDecode(m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value);
                 if (!table.ContainsKey(key)) missing.Add(key);
             }
         Assert.Empty(missing);

@@ -65,6 +65,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         LoadIntoEditor(_active);
 
         foreach (var p in _profileStore.Profiles.Where(p => p.GpuName == Info.Name)) Profiles.Add(p);
+        Profiles.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasProfiles));
         foreach (var s in CommunityProfileDb.Load(dataDirectory).ForGpu(Info)) Suggestions.Add(s);
 
         ApplyCommand = new RelayCommand(Apply, () => !IsConfirmPending && !IsTuning);
@@ -77,7 +78,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         StopTuneCommand = new RelayCommand(() => _tuneCts?.Cancel(), () => IsTuning);
         StartStressCommand = new RelayCommand(() => _ = StartStressAsync(), () => !IsTuning && !IsConfirmPending);
         SaveProfileCommand = new RelayCommand(SaveProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
-        LoadProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { LoadIntoEditor(u.Settings); _activeProfileName = u.Name; Status = L.F("\"{0}\" yüklendi. Uygula'ya basınca karta yazılır.", u.Name); } });
+        LoadProfileCommand = new RelayCommand(p =>
+        {
+            if (p is not UserProfile u) return;
+            LoadIntoEditor(u.Settings);
+            _activeProfileName = u.Name;
+            Apply();
+        }, _ => !IsConfirmPending && !IsTuning);
         DeleteProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { _profileStore.Delete(u.Name); Profiles.Remove(u); } });
         ToggleStableCommand = new RelayCommand(p => { if (p is UserProfile u) UpdateProfile(u, u with { IsStable = !u.IsStable, AutoApplyOnStart = u.AutoApplyOnStart && !u.IsStable }); });
         ToggleAutoApplyCommand = new RelayCommand(p => ToggleAutoApply(p as UserProfile));
@@ -192,6 +199,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     // ---- Profiles ----
     public ObservableCollection<UserProfile> Profiles { get; } = [];
+    public bool HasProfiles => Profiles.Count > 0;
     public ObservableCollection<CommunityProfile> Suggestions { get; } = [];
     public bool HasSuggestions => Suggestions.Count > 0;
     private string _newProfileName = "";
@@ -321,6 +329,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (!IsTuning) TuneMessage = null;
         Stability.LastChange = "";
         Stability.Update(_stability.State, _sessions.CurrentGame);
+        // Profile rows take their button texts when created; rebuild them.
+        Profiles.Clear();
+        foreach (var p in _profileStore.Profiles.Where(p => p.GpuName == Info.Name)) Profiles.Add(p);
         RefreshSilicon();
         OnPropertyChanged(string.Empty);
     }

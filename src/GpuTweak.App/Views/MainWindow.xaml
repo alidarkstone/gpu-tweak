@@ -409,6 +409,9 @@
                                 </CheckBox>
                                 <Button Style="{StaticResource LinkButton}" local:Loc.Content="Ayarların kaydedildiği klasörü aç" HorizontalAlignment="Left" Margin="-6,6,0,0"
                                         Command="{Binding OpenDataFolderCommand}" ToolTip="{Binding DataFolder}"/>
+                                <TextBlock Style="{StaticResource Caption}" Margin="0,10,0,0" Foreground="{StaticResource TertiaryTextBrush}"
+                                           local:Loc.Text="Henüz kayıtlı profil yok. Ayarları yap, aşağıya bir ad yaz ve kaydet; profil burada bir satır olarak görünür ve tek tıkla geri uygulanır."
+                                           Visibility="{Binding HasProfiles, Converter={x:Static local:Converters.FalseToVisible}}"/>
                                 <ItemsControl ItemsSource="{Binding Profiles}" Margin="0,10,0,0">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -421,21 +424,21 @@
                                                     <StackPanel VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
                                                         <TextBlock Style="{StaticResource Caption}">
-                                                            <Run Text="{Binding Settings.CoreOffsetMHz, Mode=OneWay, StringFormat='Çekirdek {0:+0;-0;0}'}"/><Run Text=" · "/><Run Text="{Binding Settings.MemoryOffsetMHz, Mode=OneWay, StringFormat='Bellek {0:+0;-0;0}'}"/>
+                                                            <Run Text="{local:T Çekirdek}"/><Run Text=" "/><Run Text="{Binding Settings.CoreOffsetMHz, Mode=OneWay, StringFormat={}{0:+0;-0;0}}"/><Run Text=" · "/><Run Text="{local:T Bellek}"/><Run Text=" "/><Run Text="{Binding Settings.MemoryOffsetMHz, Mode=OneWay, StringFormat={}{0:+0;-0;0}}"/>
                                                         </TextBlock>
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                        <Button Style="{StaticResource LinkButton}" local:Loc.Content="Yükle"
+                                                        <Button Style="{StaticResource LinkButton}" local:Loc.Content="Uygula" local:Loc.ToolTip="Bu profili karta uygula (15 saniye içinde onay istenir)"
                                                                 Command="{Binding DataContext.LoadProfileCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
                                                         <Button Command="{Binding DataContext.ToggleStableCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
                                                                 local:Loc.ToolTip="Oyunlarda test ettikten sonra stabil olarak işaretle">
                                                             <Button.Style>
                                                                 <Style TargetType="Button" BasedOn="{StaticResource LinkButton}">
-                                                                    <Setter Property="Content" Value="Stabil değil"/>
+                                                                    <Setter Property="Content" Value="{local:T 'Stabil değil'}"/>
                                                                     <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding IsStable}" Value="True">
-                                                                            <Setter Property="Content" Value="✓ Stabil"/>
+                                                                            <Setter Property="Content" Value="{local:T '✓ Stabil'}"/>
                                                                             <Setter Property="Foreground" Value="{StaticResource GreenBrush}"/>
                                                                         </DataTrigger>
                                                                     </Style.Triggers>
@@ -446,11 +449,11 @@
                                                                 local:Loc.ToolTip="Uygulama açılınca bu profili uygula">
                                                             <Button.Style>
                                                                 <Style TargetType="Button" BasedOn="{StaticResource LinkButton}">
-                                                                    <Setter Property="Content" Value="Otomatik: kapalı"/>
+                                                                    <Setter Property="Content" Value="{local:T 'Otomatik: kapalı'}"/>
                                                                     <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding AutoApplyOnStart}" Value="True">
-                                                                            <Setter Property="Content" Value="Otomatik: açık"/>
+                                                                            <Setter Property="Content" Value="{local:T 'Otomatik: açık'}"/>
                                                                             <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
                                                                         </DataTrigger>
                                                                     </Style.Triggers>
@@ -470,7 +473,12 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBox Text="{Binding NewProfileName, UpdateSourceTrigger=PropertyChanged}" local:Loc.ToolTip="Profil adı"/>
+                                    <Grid>
+                                        <TextBox x:Name="ProfileNameBox" Text="{Binding NewProfileName, UpdateSourceTrigger=PropertyChanged}" local:Loc.ToolTip="Profil adı"/>
+                                        <TextBlock local:Loc.Text="Profil adı yaz…" IsHitTestVisible="False" Margin="10,0,0,0" VerticalAlignment="Center"
+                                                   Foreground="{StaticResource TertiaryTextBrush}"
+                                                   Visibility="{Binding NewProfileName, Converter={x:Static local:Converters.EmptyToVisibility}}"/>
+                                    </Grid>
                                     <Button Grid.Column="1" Style="{StaticResource PillButton}" local:Loc.Content="Mevcut ayarları kaydet" Margin="8,0,0,0" Command="{Binding SaveProfileCommand}"/>
                                 </Grid>
                             </StackPanel>

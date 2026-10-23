@@ -7,6 +7,7 @@ namespace GpuTweak.App.Views;
 public static class Converters
 {
     public static IValueConverter NotEmptyToVisibility { get; } = new Lambda(v => string.IsNullOrEmpty(v as string) ? Visibility.Collapsed : Visibility.Visible);
+    public static IValueConverter EmptyToVisibility { get; } = new Lambda(v => string.IsNullOrEmpty(v as string) ? Visibility.Visible : Visibility.Collapsed);
     public static IValueConverter IsPositive { get; } = new Lambda(v => v is int i && i > 0);
     public static IValueConverter ZeroToVisible { get; } = new Lambda(v => v is 0 ? Visibility.Visible : Visibility.Collapsed);
     public static IValueConverter FalseToVisible { get; } = new Lambda(v => v is true ? Visibility.Collapsed : Visibility.Visible);

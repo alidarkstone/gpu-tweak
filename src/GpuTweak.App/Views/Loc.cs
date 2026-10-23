@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Markup;
 using GpuTweak.Core.Localization;
 
 namespace GpuTweak.App.Views;
@@ -53,4 +54,13 @@ public static class Loc
                 if (target.TryGetTarget(out var d)) d.SetValue(property, L.T(key));
         }
     }
+}
+
+/// <summary>
+/// <c>{local:T 'Türkçe metin'}</c> for places an attached property cannot reach (style setters, string formats).
+/// Evaluated when the element is created, so items in lists pick up a language change when the list is rebuilt.
+/// </summary>
+public sealed class TExtension(string text) : MarkupExtension
+{
+    public override object ProvideValue(IServiceProvider serviceProvider) => L.T(text);
 }
