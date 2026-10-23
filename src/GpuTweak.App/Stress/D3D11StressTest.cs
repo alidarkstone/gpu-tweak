@@ -16,7 +16,8 @@ namespace GpuTweak.App.Stress;
 /// which is the earliest sign of an unstable undervolt (it shows up well before a driver crash).
 /// </summary>
 /// <summary>What the live panel draws: the latest results and which threads have ever been wrong in this run.</summary>
-public sealed record StressSnapshot(uint[] Results, byte[] ErrorMask, long Checked, long Errors, StressPattern Pattern, int[]? Image);
+/// <param name="ArtifactsFound">Batches with wrong results since the stress test was created (across all tuning steps).</param>
+public sealed record StressSnapshot(uint[] Results, byte[] ErrorMask, long Checked, long Errors, StressPattern Pattern, int[]? Image, int ArtifactsFound);
 
 public sealed class D3D11StressTest : IStressTest
 {
@@ -109,6 +110,7 @@ public sealed class D3D11StressTest : IStressTest
     private uint[]? _reference;
     private byte[] _errorMask = new byte[ThreadCount];
     private long _checked, _errors;
+    private int _artifactsFound;
     private StressPattern _pattern;
 
     /// <summary>Latest state for the live panel. Arrays are replaced, never mutated after publishing, so reading from another thread is safe.</summary>
@@ -206,10 +208,14 @@ public sealed class D3D11StressTest : IStressTest
             mask ??= (byte[])_errorMask.Clone();
             mask[i] = 1;
         }
-        if (mask is not null) _errorMask = mask;
+        if (mask is not null)
+        {
+            _errorMask = mask;
+            _artifactsFound++;
+        }
         _checked += result.Length;
         _errors += errors;
-        Snapshot = new StressSnapshot(result, _errorMask, _checked, _errors, _pattern, DrawPreview());
+        Snapshot = new StressSnapshot(result, _errorMask, _checked, _errors, _pattern, DrawPreview(), _artifactsFound);
         reason = errors == 0 ? "" : $"{errors:N0} hesap hatası";
         return errors == 0;
     }

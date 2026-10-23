@@ -41,7 +41,7 @@
                     <TextBlock Text="{Binding Monitor.ErrorsText}" TextWrapping="Wrap" FontSize="12"/>
                 </Border>
                 <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,0"
-                           Text="Kart bu animasyonu çizerken arka planda milyonlarca hesap yapıyor ve her birinin doğruluğu kontrol ediliyor. Görüntü akıyor ve kutu yeşilse her şey yolunda. Hatalı hesaplar görüntünün üstünde kırmızı kıvılcım olarak çıkar."/>
+                           Text="Kart bu animasyonu çizerken arka planda milyonlarca hesap yapıyor ve her birinin doğruluğu kontrol ediliyor. Görüntü akıyor ve kutu yeşilse her şey yolunda."/>
             </StackPanel>
 
             <!-- Live sensor charts -->
@@ -87,6 +87,27 @@
                         <Polyline Points="{Binding Monitor.PowerPoints}" Stroke="{StaticResource GreenBrush}" StrokeThickness="2"/>
                     </Border>
                 </Grid>
+
+                <!-- Artifact counter -->
+                <Border CornerRadius="10" Padding="14,10" Margin="0,12,0,0">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="#2230D158"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Monitor.ArtifactsFound, Converter={x:Static local:Converters.IsPositive}}" Value="True">
+                                    <Setter Property="Background" Value="#33FF453A"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="Bulunan artifact" FontWeight="SemiBold"/>
+                            <TextBlock Style="{StaticResource Caption}" Text="Kartın hatalı hesap ürettiği an sayısı. Bulunan her artifact o ayarın elenmesi demek."/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Monitor.ArtifactsFound}" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
             </StackPanel>
 
             <!-- Tuning status and step results -->

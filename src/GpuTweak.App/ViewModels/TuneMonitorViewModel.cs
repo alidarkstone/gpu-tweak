@@ -38,6 +38,10 @@ public sealed class TuneMonitorViewModel : ObservableObject
     private string _clock = "–", _temperature = "–", _power = "–", _load = "–";
     private bool _hasErrors;
     private PointCollection _clockPoints = [], _temperaturePoints = [], _powerPoints = [];
+    private int _artifactsFound;
+    /// <summary>How many times the card produced wrong results during this tuning run.</summary>
+    public int ArtifactsFound { get => _artifactsFound; private set => Set(ref _artifactsFound, value); }
+
     private bool _hasMap;
     public bool HasMap { get => _hasMap; private set => Set(ref _hasMap, value); }
     public string ErrorsText { get => _errorsText; private set => Set(ref _errorsText, value); }
@@ -60,6 +64,7 @@ public sealed class TuneMonitorViewModel : ObservableObject
         Steps.Clear();
         ErrorsText = "Hazırlanıyor…";
         HasMap = false;
+        ArtifactsFound = 0;
         HasErrors = false;
         PatternText = "";
         Clear();
@@ -125,27 +130,11 @@ public sealed class TuneMonitorViewModel : ObservableObject
         HasErrors = snapshot.Errors > 0;
         ErrorsText = snapshot.Errors == 0
             ? $"✓ Görüntü temiz, hatalı hesap yok ({snapshot.Checked:N0} sonuç kontrol edildi)"
-            : $"✗ {snapshot.Errors:N0} hatalı hesap bulundu. Bu ayar kararsız, program bir adım geri gidecek.";
+            : $"✗ Bu adımda {snapshot.Errors:N0} hatalı hesap bulundu. Ayar kararsız, program bir adım geri gidecek.";
 
-        // The animated preview the card is rendering, with every thread that computed a wrong result
-        // marked as a red spark on top (it stays for the rest of this step).
-        var pixels = snapshot.Image is { Length: MapPixels * MapPixels } image ? (int[])image.Clone() : new int[MapPixels * MapPixels];
-        if (snapshot.Errors > 0)
-        {
-            const int size = D3D11StressTest.MapSize;
-            for (var i = 0; i < snapshot.ErrorMask.Length; i++)
-            {
-                if (snapshot.ErrorMask[i] == 0) continue;
-                var cx = (i % size) * MapPixels / size;
-                var cy = (i / size) * MapPixels / size;
-                for (var dy = -1; dy <= 1; dy++)
-                for (var dx = -1; dx <= 1; dx++)
-                {
-                    int x = cx + dx, y = cy + dy;
-                    if (x >= 0 && y >= 0 && x < MapPixels && y < MapPixels) pixels[y * MapPixels + x] = 0xFF3B30;
-                }
-            }
-        }
+        // The animated preview the card is rendering. Wrong results are counted below the power chart.
+        ArtifactsFound = snapshot.ArtifactsFound;
+        if (snapshot.Image is not { Length: MapPixels * MapPixels } pixels) return;
         ErrorMap.WritePixels(new Int32Rect(0, 0, MapPixels, MapPixels), pixels, MapPixels * 4, 0);
     }
 
