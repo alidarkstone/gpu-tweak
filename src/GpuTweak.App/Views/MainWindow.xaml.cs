@@ -14,7 +14,7 @@ public partial class MainWindow : Window
     private GlobalHotKey? _hotKey;
 
     // Layout design size (see the Viewbox in MainWindow.xaml); used to open the window with the right proportions.
-    private const double DesignWidth = 1400, DesignHeight = 960;
+    private const double DesignWidth = 1400, DesignHeight = 1340;
 
     public MainWindow(MainViewModel viewModel)
     {

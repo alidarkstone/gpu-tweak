@@ -9,13 +9,13 @@
         UseLayoutRounding="True">
     <Grid x:Name="Root">
         <!-- The whole layout is designed at a fixed size and scaled to fit the window, so it never needs scrolling. -->
-        <Viewbox Stretch="Uniform" VerticalAlignment="Top"
-                 Visibility="{Binding IsMonitorVisible, Converter={x:Static local:Converters.FalseToVisible}}">
+        <Viewbox Stretch="Uniform" VerticalAlignment="Top">
             <Grid Width="1400" Margin="28,22,28,28">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <!-- Header -->
@@ -32,7 +32,9 @@
                         <TextBlock Text="{Binding Info.ShortName}" Style="{StaticResource LargeTitle}"/>
                         <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Caption}"/>
                     </StackPanel>
-                    <Border Grid.Column="2" CornerRadius="8" Padding="12,6" Background="#1FFFFFFF" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding IsMonitorVisible}" Content="Canlı panel" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                    <Border CornerRadius="8" Padding="12,6" Background="#1FFFFFFF" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
                                 <Ellipse.Style>
@@ -49,6 +51,7 @@
                             <TextBlock Text="{Binding ActiveStateText}" FontSize="12"/>
                         </StackPanel>
                     </Border>
+                    </StackPanel>
                 </Grid>
 
                 <!-- Live metrics -->
@@ -129,10 +132,6 @@
                                                 Visibility="{Binding HasPendingJournal, Converter={StaticResource BoolToVisibility}}"/>
                                         <Button Style="{StaticResource PrimaryButton}" Content="Başlat" Command="{Binding StartTuneCommand}"
                                                 Visibility="{Binding IsTuning, Converter={x:Static local:Converters.FalseToVisible}}"/>
-                                        <Button Style="{StaticResource PillButton}" Content="Canlı panel" Command="{Binding ToggleMonitorCommand}" Margin="0,0,8,0"
-                                                Visibility="{Binding IsTuning, Converter={StaticResource BoolToVisibility}}"/>
-                                        <Button Style="{StaticResource PillButton}" Content="Sonuçları gör" Command="{Binding ToggleMonitorCommand}" Margin="0,0,8,0"
-                                                Visibility="{Binding HasTuneResult, Converter={StaticResource BoolToVisibility}}"/>
                                         <Button Style="{StaticResource PillButton}" Content="Durdur" Command="{Binding StopTuneCommand}"
                                                 Visibility="{Binding IsTuning, Converter={StaticResource BoolToVisibility}}"/>
                                     </StackPanel>
@@ -393,15 +392,15 @@
                         </Border>
                     </StackPanel>
                 </Grid>
+
+                <!-- Live panel: sensors, GPU result map and auto-tune steps. Visible by default, hidden with the header switch. -->
+                <local:TuneMonitorView Grid.Row="3" Margin="0,0,0,0"
+                                       Visibility="{Binding IsMonitorVisible, Converter={StaticResource BoolToVisibility}}"/>
             </Grid>
         </Viewbox>
 
-        <!-- Live auto-tune panel, shown in place of the dashboard -->
-        <local:TuneMonitorView Visibility="{Binding IsMonitorVisible, Converter={StaticResource BoolToVisibility}}"/>
-
         <!-- Bottom area: status toast and confirmation banner -->
-        <StackPanel VerticalAlignment="Bottom" Margin="28,0,28,20"
-                    Visibility="{Binding IsMonitorVisible, Converter={x:Static local:Converters.FalseToVisible}}">
+        <StackPanel VerticalAlignment="Bottom" Margin="28,0,28,20">
             <Border CornerRadius="12" Padding="14,10" Margin="0,0,0,10" MaxWidth="760"
                     Visibility="{Binding Status, Converter={x:Static local:Converters.NotEmptyToVisibility}}">
                 <Border.Style>

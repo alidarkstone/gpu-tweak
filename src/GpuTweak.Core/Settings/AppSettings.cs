@@ -27,6 +27,7 @@ public sealed record AppSettings
 {
     public OverlaySettings Overlay { get; init; } = new();
     public double ThermalLimitC { get; init; } = 88;
+    public bool ShowLivePanel { get; init; } = true;
     public int PollIntervalMs { get; init; } = 1000;
 }
 

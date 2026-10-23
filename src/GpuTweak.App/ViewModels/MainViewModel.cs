@@ -67,7 +67,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         StartTuneCommand = new RelayCommand(() => _ = StartTuneAsync(resume: false), () => !IsTuning && !IsConfirmPending);
         ResumeTuneCommand = new RelayCommand(() => _ = StartTuneAsync(resume: true), () => !IsTuning && PendingJournal is not null);
         StopTuneCommand = new RelayCommand(() => _tuneCts?.Cancel(), () => IsTuning);
-        ToggleMonitorCommand = new RelayCommand(() => IsMonitorVisible = !IsMonitorVisible);
         SaveProfileCommand = new RelayCommand(SaveProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
         LoadProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { LoadIntoEditor(u.Settings); _activeProfileName = u.Name; Status = $"\"{u.Name}\" yüklendi. Uygula'ya basınca karta yazılır."; } });
         DeleteProfileCommand = new RelayCommand(p => { if (p is UserProfile u) { _profileStore.Delete(u.Name); Profiles.Remove(u); } });
@@ -191,15 +190,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public TuneMonitorViewModel Monitor { get; } = new();
 
-    private bool _isMonitorVisible;
-    /// <summary>The live panel replaces the dashboard inside the main window while this is true.</summary>
-    public bool IsMonitorVisible { get => _isMonitorVisible; set => Set(ref _isMonitorVisible, value); }
+    /// <summary>Live panel at the bottom of the dashboard; on by default, remembered between runs.</summary>
+    public bool IsMonitorVisible
+    {
+        get => _settings.ShowLivePanel;
+        set
+        {
+            if (value == _settings.ShowLivePanel) return;
+            _settings = _settings with { ShowLivePanel = value };
+            _settingsStore.Save(_settings);
+            OnPropertyChanged();
+        }
+    }
     public string MonitorTitle => IsTuning ? "Otomatik ayar çalışıyor" : TuneResult is { Success: true } ? "Otomatik ayar bitti" : "Otomatik ayar";
 
     public ICommand StartTuneCommand { get; }
     public ICommand ResumeTuneCommand { get; }
     public ICommand StopTuneCommand { get; }
-    public ICommand ToggleMonitorCommand { get; }
     public ICommand ApplyCommand { get; }
     public ICommand ResetCommand { get; }
     public ICommand ConfirmCommand { get; }
@@ -396,7 +403,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Load = s.LoadPercent is { } l ? $"{l}" : "–";
         LoadLevel = (s.LoadPercent ?? 0) / 100.0;
         Overlay.Update(s);
-        if (IsTuning) Monitor.OnSample(s);
+        Monitor.OnSample(s);
 
         // While tuning, the tuner watches temperature itself (with a lower limit) and resets between steps.
         if (!IsTuning && _thermalGuard.ShouldRevert(s, IsCustomActive || IsConfirmPending))

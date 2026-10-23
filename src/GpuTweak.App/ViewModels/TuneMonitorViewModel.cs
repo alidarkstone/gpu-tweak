@@ -15,7 +15,7 @@ public sealed class TuneMonitorViewModel : ObservableObject
 {
     private const int MapPixels = D3D11StressTest.MapSize / 2;
     private const int HistoryLength = 120;
-    public const double ChartWidth = 440, ChartHeight = 70;
+    public const double ChartWidth = 264, ChartHeight = 70;
 
     private readonly Queue<GpuTelemetry> _history = new();
     private D3D11StressTest? _stress;
@@ -30,10 +30,12 @@ public sealed class TuneMonitorViewModel : ObservableObject
     public WriteableBitmap ErrorMap { get; }
     public ObservableCollection<TuneStepRow> Steps { get; } = [];
 
-    private string _errorsText = "Test başlamadı", _patternText = "", _elapsed = "0:00";
+    private string _errorsText = "Test çalışmıyor", _patternText = "", _elapsed = "0:00";
     private string _clock = "–", _temperature = "–", _power = "–", _load = "–";
     private bool _hasErrors;
     private PointCollection _clockPoints = [], _temperaturePoints = [], _powerPoints = [];
+    private bool _hasMap;
+    public bool HasMap { get => _hasMap; private set => Set(ref _hasMap, value); }
     public string ErrorsText { get => _errorsText; private set => Set(ref _errorsText, value); }
     public bool HasErrors { get => _hasErrors; private set => Set(ref _hasErrors, value); }
     public string PatternText { get => _patternText; private set => Set(ref _patternText, value); }
@@ -51,9 +53,9 @@ public sealed class TuneMonitorViewModel : ObservableObject
         _stress = stress;
         _drawn = null;
         _startedAt = DateTimeOffset.Now;
-        _history.Clear();
         Steps.Clear();
         ErrorsText = "Hazırlanıyor…";
+        HasMap = false;
         HasErrors = false;
         PatternText = "";
         Clear();
@@ -72,8 +74,7 @@ public sealed class TuneMonitorViewModel : ObservableObject
     /// <summary>Called on the UI thread once per telemetry sample.</summary>
     public void OnSample(GpuTelemetry s)
     {
-        if (_stress is null) return;
-        Elapsed = (DateTimeOffset.Now - _startedAt).ToString(@"m\:ss");
+        if (_stress is not null) Elapsed = (DateTimeOffset.Now - _startedAt).ToString(@"m\:ss");
 
         _history.Enqueue(s);
         while (_history.Count > HistoryLength) _history.Dequeue();
@@ -110,6 +111,7 @@ public sealed class TuneMonitorViewModel : ObservableObject
         var snapshot = _stress?.Snapshot;
         if (snapshot is null || ReferenceEquals(snapshot, _drawn)) return;
         _drawn = snapshot;
+        HasMap = true;
 
         PatternText = snapshot.Pattern == StressPattern.Heavy ? "Ağır yük" : snapshot.Pattern == StressPattern.Transient ? "Dalgalı yük" : "Karışık yük";
         HasErrors = snapshot.Errors > 0;
@@ -147,6 +149,5 @@ public sealed class TuneMonitorViewModel : ObservableObject
         var pixels = new int[MapPixels * MapPixels];
         Array.Fill(pixels, 0x1C1C1E);
         ErrorMap.WritePixels(new Int32Rect(0, 0, MapPixels, MapPixels), pixels, MapPixels * 4, 0);
-        ClockPoints = TemperaturePoints = PowerPoints = [];
     }
 }
