@@ -64,9 +64,18 @@
                     </UniformGrid.Resources>
                     <Border>
                         <StackPanel>
-                            <TextBlock Text="Sıcaklık" Style="{StaticResource Caption}"/>
+                            <Grid>
+                                <TextBlock Text="GPU sıcaklığı" Style="{StaticResource Caption}"/>
+                                <Button Style="{StaticResource LinkButton}" Content="Sıfırla" FontSize="11" Padding="4,0" Margin="0,-3,-6,0" HorizontalAlignment="Right"
+                                        Command="{Binding ResetTemperatureStatsCommand}" ToolTip="Min / Ort / Maks değerlerini sıfırla"/>
+                            </Grid>
                             <TextBlock Text="{Binding Temperature}" Style="{StaticResource MetricValue}"/>
                             <ProgressBar Style="{StaticResource LevelBar}" Value="{Binding TemperatureLevel, Mode=OneWay}" Foreground="{StaticResource OrangeBrush}"/>
+                            <UniformGrid Columns="3" Margin="0,8,0,0" ToolTip="Program açıldığından (veya Sıfırla'ya basıldığından) beri">
+                                <StackPanel><TextBlock Text="Min" Style="{StaticResource Caption}"/><TextBlock Text="{Binding TemperatureMin}" FontWeight="SemiBold"/></StackPanel>
+                                <StackPanel><TextBlock Text="Ort" Style="{StaticResource Caption}"/><TextBlock Text="{Binding TemperatureAvg}" FontWeight="SemiBold"/></StackPanel>
+                                <StackPanel><TextBlock Text="Maks" Style="{StaticResource Caption}"/><TextBlock Text="{Binding TemperatureMax}" FontWeight="SemiBold"/></StackPanel>
+                            </UniformGrid>
                         </StackPanel>
                     </Border>
                     <Border>
@@ -282,6 +291,87 @@
                                 </StackPanel>
                             </StackPanel>
                         </Border>
+
+                        <!-- Game stability: problems seen in real games, tied to the settings that were on -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Oyun kararlılığı" Style="{StaticResource SectionTitle}" Margin="0"/>
+                                    <TextBlock Grid.Column="1" Style="{StaticResource Caption}" VerticalAlignment="Center"><Run Text="Şu an: "/><Run Text="{Binding Stability.CurrentGame, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/></TextBlock>
+                                </Grid>
+                                <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,12"
+                                           Text="Oyun oynarken Windows kayıtlarını izler. Sürücü çökmesi, oyun çökmesi veya mavi ekran olursa ayarı bir adım geri çeker."/>
+
+                                <UniformGrid Columns="3" Margin="-5,0,-5,0">
+                                    <Border CornerRadius="10" Background="{StaticResource FillBrush}" Padding="12,8" Margin="5,0">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource Caption}" Text="Sorunsuz oyun"/>
+                                            <TextBlock Text="{Binding Stability.CleanTime}" FontSize="20" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border CornerRadius="10" Padding="12,8" Margin="5,0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#2230D158"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Stability.IncidentCount, Converter={x:Static local:Converters.IsPositive}}" Value="True">
+                                                        <Setter Property="Background" Value="#33FF453A"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource Caption}" Text="Algılanan sorun"/>
+                                            <TextBlock Text="{Binding Stability.IncidentCount}" FontSize="20" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border CornerRadius="10" Background="{StaticResource FillBrush}" Padding="12,8" Margin="5,0">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource Caption}" Text="Oyun oturumu"/>
+                                            <TextBlock Text="{Binding Stability.SessionCount}" FontSize="20" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
+
+                                <ProgressBar Style="{StaticResource LevelBar}" Value="{Binding Stability.CleanLevel, Mode=OneWay}" Foreground="{StaticResource GreenBrush}" Margin="0,12,0,0"/>
+                                <TextBlock Style="{StaticResource Caption}" Text="{Binding Stability.CleanGoal}" Margin="0,4,0,0"/>
+                                <Button Style="{StaticResource PrimaryButton}" Content="Profili &quot;Stabil&quot; işaretle" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                        Command="{Binding MarkStableCommand}" Visibility="{Binding CanMarkStable, Converter={StaticResource BoolToVisibility}}"/>
+
+                                <ItemsControl ItemsSource="{Binding Stability.Recent}" Margin="0,12,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" Margin="0,0,0,3">
+                                                <Run Text="{Binding When, Mode=OneWay}" Foreground="{StaticResource TertiaryTextBrush}"/><Run Text="   "/><Run Text="{Binding Text, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Style="{StaticResource Caption}" Foreground="{StaticResource OrangeBrush}" Text="{Binding Stability.LastChange}"
+                                           Visibility="{Binding Stability.LastChange, Converter={x:Static local:Converters.NotEmptyToVisibility}}"/>
+
+                                <Rectangle Height="1" Fill="{StaticResource SeparatorBrush}" Margin="0,14"/>
+                                <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutoFixStability}">
+                                    <StackPanel>
+                                        <TextBlock Text="Sorun olunca otomatik düzelt"/>
+                                        <TextBlock Style="{StaticResource Caption}" Text="Kapalıyken sadece kaydeder ve öneri gösterir."/>
+                                    </StackPanel>
+                                </CheckBox>
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                               Text="Oyunda titreyen doku, renkli nokta veya çizgi gördüysen bas. Oyun içindeyken Ctrl+Shift+A da olur."/>
+                                    <Button Grid.Column="1" Style="{StaticResource PillButton}" Content="Artifact gördüm" Command="{Binding ReportArtifactCommand}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
 
                     <!-- Column 3: profiles and community suggestions -->
@@ -363,6 +453,34 @@
                                     <TextBox Text="{Binding NewProfileName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Profil adı"/>
                                     <Button Grid.Column="1" Style="{StaticResource PillButton}" Content="Mevcut ayarları kaydet" Margin="8,0,0,0" Command="{Binding SaveProfileCommand}"/>
                                 </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Silicon: what the auto-tune measured on this chip -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Silikon skoru" Style="{StaticResource SectionTitle}"/>
+                                <TextBlock Style="{StaticResource Caption}" Text="{Binding SiliconText}" Margin="0,0,0,0"/>
+                                <UniformGrid Columns="3" Margin="-5,12,-5,0" Visibility="{Binding HasSilicon, Converter={StaticResource BoolToVisibility}}">
+                                    <Border CornerRadius="10" Background="{StaticResource FillBrush}" Padding="12,8" Margin="5,0">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource Caption}" Text="Testte kaldırdı"/>
+                                            <TextBlock Text="{Binding SiliconHeadroom}" FontSize="20" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border CornerRadius="10" Background="{StaticResource FillBrush}" Padding="12,8" Margin="5,0">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource Caption}" Text="Günlük ayar"/>
+                                            <TextBlock Text="{Binding SiliconDaily}" FontSize="20" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border CornerRadius="10" Background="{StaticResource FillBrush}" Padding="12,8" Margin="5,0">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource Caption}" Text="Oyunda kararlı"/>
+                                            <TextBlock Text="{Binding SiliconGame}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
                             </StackPanel>
                         </Border>
 

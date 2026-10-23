@@ -12,6 +12,7 @@ using GpuTweak.Core.Models;
 using GpuTweak.Core.Profiles;
 using GpuTweak.Core.Safety;
 using GpuTweak.Core.Settings;
+using GpuTweak.Core.Stability;
 
 namespace GpuTweak.App.ViewModels;
 
@@ -26,6 +27,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly TelemetryService _telemetry;
     private readonly Dispatcher _dispatcher = Application.Current.Dispatcher;
     private readonly string _dataDirectory;
+    private readonly StabilityTracker _stability;
+    private readonly GameSessionDetector _sessions = new();
+    private readonly DispatcherTimer _stabilityTimer;
     private CancellationTokenSource? _tuneCts;
     private AppSettings _settings;
     private TuningSettings _active;
@@ -83,6 +87,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         else if (PendingJournal is not null)
             TuneMessage = "Önceki otomatik ayar testi yarıda kaldı. Kaldığı yerden devam edebilirsin.";
 
+        // Look at what happened since the last run before anything is applied: a crash or driver reset with the
+        // previous settings steps them (and the profile that holds them) down before it is auto-applied again.
+        _stability = new StabilityTracker(dataDirectory, new WindowsIncidentSource()) { AutoAdjust = _settings.AutoFixStability };
+        if (PendingJournal is not null) _stability.SkipToNow(); // crashes during the auto-tune test are expected
+        else HandleStabilityUpdates(_stability.Check());
+        _stabilityTimer = new DispatcherTimer(TimeSpan.FromSeconds(30), DispatcherPriority.Background, (_, _) => CheckStability(), _dispatcher);
+        _stabilityTimer.Start();
+        ReportArtifactCommand = new RelayCommand(ReportArtifact, () => !IsTuning);
+        MarkStableCommand = new RelayCommand(MarkActiveStable, () => CanMarkStable);
+
         // Keep the startup task pointing at this exe, in case the user moved it or downloaded a newer version.
         if (_startWithWindows) StartupTask.Enable();
 
@@ -91,15 +105,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         if (crash is not null)
         {
-            Status = "Önceki oturum özel ayarlar açıkken beklenmedik şekilde kapandı. Güvenlik için varsayılan ayarlarla başlatıldı.";
+            Status = "Önceki oturum özel ayarlar açıkken beklenmedik şekilde kapandı. Güvenlik için varsayılan ayarlarla başlatıldı." + (Status is null ? "" : " " + Status);
             StatusIsWarning = true;
         }
         else if (_profileStore.GetStartupProfile(Info.Name, crash) is { } startup)
         {
             ApplyDirect(startup.Settings, startup.Name);
             LoadIntoEditor(startup.Settings);
-            Status = $"Stabil profil \"{startup.Name}\" otomatik uygulandı.";
+            Status ??= $"Stabil profil \"{startup.Name}\" otomatik uygulandı.";
         }
+        Stability.Update(_stability.State, null);
+        RefreshSilicon();
     }
 
     public GpuInfo Info { get; }
@@ -115,6 +131,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _temperature = "–", _coreClock = "–", _memoryClock = "–", _power = "–", _vram = "–", _fan = "–", _load = "–";
     private double _temperatureLevel, _powerLevel, _vramLevel, _loadLevel;
     public string Temperature { get => _temperature; private set => Set(ref _temperature, value); }
+
+    // GPU temperature since the app started (or since the user reset it).
+    private readonly RunningStats _temperatureStats = new();
+    private string _temperatureMin = "–", _temperatureAvg = "–", _temperatureMax = "–";
+    public string TemperatureMin { get => _temperatureMin; private set => Set(ref _temperatureMin, value); }
+    public string TemperatureAvg { get => _temperatureAvg; private set => Set(ref _temperatureAvg, value); }
+    public string TemperatureMax { get => _temperatureMax; private set => Set(ref _temperatureMax, value); }
+    public ICommand ResetTemperatureStatsCommand => new RelayCommand(() => { _temperatureStats.Reset(); ShowTemperatureStats(); });
+
+    private void ShowTemperatureStats()
+    {
+        TemperatureMin = _temperatureStats.Min is { } min ? $"{min:0}°" : "–";
+        TemperatureAvg = _temperatureStats.Average is { } avg ? $"{avg:0}°" : "–";
+        TemperatureMax = _temperatureStats.Max is { } max ? $"{max:0}°" : "–";
+    }
     public string CoreClock { get => _coreClock; private set => Set(ref _coreClock, value); }
     public string MemoryClock { get => _memoryClock; private set => Set(ref _memoryClock, value); }
     public string Power { get => _power; private set => Set(ref _power, value); }
@@ -194,6 +225,38 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         : "";
 
     public TuneMonitorViewModel Monitor { get; } = new();
+
+    // ---- Game stability ----
+    public StabilityViewModel Stability { get; } = new();
+    public ICommand ReportArtifactCommand { get; }
+    public ICommand MarkStableCommand { get; }
+
+    /// <summary>Step settings down by themselves after a driver reset / crash while gaming.</summary>
+    public bool AutoFixStability
+    {
+        get => _settings.AutoFixStability;
+        set
+        {
+            if (value == _settings.AutoFixStability) return;
+            _settings = _settings with { AutoFixStability = value };
+            _settingsStore.Save(_settings);
+            _stability.AutoAdjust = value;
+            OnPropertyChanged();
+        }
+    }
+
+    private bool _canMarkStable;
+    /// <summary>The settings on the card have enough clean gaming time and belong to a profile not yet marked stable.</summary>
+    public bool CanMarkStable { get => _canMarkStable; private set => Set(ref _canMarkStable, value); }
+
+    // ---- Silicon ----
+    private string _siliconHeadroom = "–", _siliconText = "Otomatik ayarı bir kez çalıştırınca çipinin ne kadar kaldırdığı burada görünür.", _siliconDaily = "–", _siliconGame = "–";
+    private bool _hasSilicon;
+    public bool HasSilicon { get => _hasSilicon; private set => Set(ref _hasSilicon, value); }
+    public string SiliconHeadroom { get => _siliconHeadroom; private set => Set(ref _siliconHeadroom, value); }
+    public string SiliconDaily { get => _siliconDaily; private set => Set(ref _siliconDaily, value); }
+    public string SiliconGame { get => _siliconGame; private set => Set(ref _siliconGame, value); }
+    public string SiliconText { get => _siliconText; private set => Set(ref _siliconText, value); }
 
     public string DataFolder => _dataDirectory;
 
@@ -341,6 +404,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _activeProfileName = settings.IsStock ? null : profileName;
         if (settings.IsStock) _crashGuard.MarkStock();
         else _crashGuard.MarkCustomApplied(_activeProfileName);
+        _stability.SettingsChanged(settings);
+        Stability.Update(_stability.State, _sessions.CurrentGame);
+        UpdateCanMarkStable();
+        RefreshSilicon();
         OnPropertyChanged(nameof(IsCustomActive));
         OnPropertyChanged(nameof(ActiveStateText));
     }
@@ -425,6 +492,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         Temperature = s.TemperatureC is { } t ? $"{t:0}°" : "–";
         TemperatureLevel = s.TemperatureC is { } t2 ? Math.Clamp(t2 / 100.0, 0, 1) : 0;
+        _temperatureStats.Add(s.TemperatureC);
+        ShowTemperatureStats();
         CoreClock = s.CoreClockMHz is { } c ? $"{c}" : "–";
         MemoryClock = s.MemoryClockMHz is { } m ? $"{m}" : "–";
         Power = s.PowerW is { } p ? $"{p:0}" : "–";
@@ -436,6 +505,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         LoadLevel = (s.LoadPercent ?? 0) / 100.0;
         Overlay.Update(s);
         Monitor.OnSample(s);
+        if (!IsTuning) FeedSession(s);
 
         // While tuning, the tuner watches temperature itself (with a lower limit) and resets between steps.
         if (!IsTuning && _thermalGuard.ShouldRevert(s, IsCustomActive || IsConfirmPending))
@@ -490,6 +560,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         TuneResult = result;
         OnPropertyChanged(nameof(TuneSummary));
+        // The test may have reset the driver on purpose; that is not a gaming problem.
+        _stability.SkipToNow();
+        if (result is { Success: true, Settings: { } tuned })
+        {
+            _settings = _settings with { Silicon = new SiliconResult(Info.Name, result.HighestPassedOffsetMHz, result.ReachedSearchLimit, tuned.CoreOffsetMHz, DateTimeOffset.Now) };
+            _settingsStore.Save(_settings);
+        }
         if (result is { Success: true, Settings: { } settings })
         {
             ApplyDirect(settings, "Otomatik UV");
@@ -511,6 +588,143 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    private bool _checkingStability;
+
+    private async void CheckStability()
+    {
+        if (IsTuning || _checkingStability) return;
+        _checkingStability = true;
+        try
+        {
+            var game = _sessions.CurrentGame;
+            var updates = await Task.Run(() => _stability.Check(game));
+            if (!IsTuning) HandleStabilityUpdates(updates);
+            else _stability.SkipToNow();
+        }
+        catch (Exception) { /* the event log can be unavailable; try again next time */ }
+        finally { _checkingStability = false; }
+    }
+
+    private void FeedSession(GpuTelemetry s)
+    {
+        var finished = _sessions.Feed(s, ForegroundApp.ProcessName(), _active);
+        if (finished is not null && finished.Duration >= TimeSpan.FromMinutes(2))
+        {
+            _stability.AddSession(finished);
+            if (StabilityAdvisor.ShouldSuggestStable(_stability.State) && ActiveProfile() is { IsStable: false } p)
+            {
+                Status = $"Bu ayarlar {Stability.CleanTime} oyunda sorunsuz çalıştı. \"{p.Name}\" profilini \"Stabil\" işaretleyebilirsin.";
+                StatusIsWarning = false;
+            }
+        }
+        if (finished is not null || Stability.CurrentGame != (_sessions.CurrentGame ?? "Oyun yok"))
+        {
+            Stability.Update(_stability.State, _sessions.CurrentGame);
+            UpdateCanMarkStable();
+        }
+    }
+
+    private void ReportArtifact()
+    {
+        var game = _sessions.CurrentGame;
+        _sessions.MarkIncident();
+        HandleStabilityUpdates([_stability.ReportArtifact(game)]);
+    }
+
+    /// <summary>
+    /// Applies the step-down for each new incident: the card gets the safer settings right away (if custom
+    /// settings are on), and every saved profile that held the old settings is updated, so the next auto-apply
+    /// uses the safer values too.
+    /// </summary>
+    private void HandleStabilityUpdates(IReadOnlyList<TrackerUpdate> updates)
+    {
+        foreach (var (incident, adjustment) in updates)
+        {
+            _sessions.MarkIncident();
+            var where = incident.Game is { } g ? $"{g} oyununda" : "Oyun sırasında";
+            var what = incident.Kind switch
+            {
+                IncidentKind.DriverReset => "ekran sürücüsü çökmesi",
+                IncidentKind.GameCrash => "oyun çökmesi",
+                IncidentKind.SystemCrash => "sistem çökmesi",
+                _ => "görüntü bozulması (artifact)",
+            };
+            if (incident.Kind == IncidentKind.SystemCrash) where = "Bilgisayarda";
+
+            if (adjustment is null)
+            {
+                Status = $"{where} {what} kaydedildi. Kart varsayılan ayarlardaydı, ayarlarla ilgisi yok.";
+                StatusIsWarning = false;
+            }
+            else if (!_stability.AutoAdjust)
+            {
+                Status = $"{where} {what} algılandı. Öneri: {adjustment.Description}. (Otomatik düzeltme kapalı.)";
+                StatusIsWarning = true;
+            }
+            else
+            {
+                StepDown(adjustment);
+                Status = $"{where} {what} algılandı. Daha güvenli ayara geçildi: {adjustment.Description}.";
+                StatusIsWarning = true;
+                Stability.LastChange = $"{DateTime.Now:dd.MM HH:mm} · {adjustment.Description}";
+            }
+        }
+        if (updates.Count > 0)
+        {
+            Stability.Update(_stability.State, _sessions.CurrentGame);
+            UpdateCanMarkStable();
+            RefreshSilicon();
+        }
+    }
+
+    private void StepDown(Adjustment adjustment)
+    {
+        // Profiles that hold the old settings get the new values, so the next auto-apply is the safer one.
+        foreach (var profile in _profileStore.Profiles.Where(p => p.GpuName == Info.Name && p.Settings == adjustment.From).ToList())
+            _profileStore.Save(profile with { Settings = adjustment.Settings });
+        Profiles.Clear();
+        foreach (var p in _profileStore.Profiles.Where(p => p.GpuName == Info.Name)) Profiles.Add(p);
+
+        if (!_active.IsStock && !IsConfirmPending)
+        {
+            ApplyDirect(adjustment.Settings, _activeProfileName);
+            LoadIntoEditor(adjustment.Settings);
+        }
+    }
+
+    private UserProfile? ActiveProfile() =>
+        _activeProfileName is { } name ? _profileStore.Profiles.FirstOrDefault(p => p.GpuName == Info.Name && p.Name == name) : null;
+
+    private void UpdateCanMarkStable() =>
+        CanMarkStable = StabilityAdvisor.ShouldSuggestStable(_stability.State) && ActiveProfile() is { IsStable: false };
+
+    private void MarkActiveStable()
+    {
+        if (ActiveProfile() is not { } profile) return;
+        UpdateProfile(profile, profile with { IsStable = true });
+        UpdateCanMarkStable();
+        Status = $"\"{profile.Name}\" stabil işaretlendi. Açılışta otomatik uygulamak için \"Otomatik\" düğmesini aç.";
+        StatusIsWarning = false;
+    }
+
+    /// <summary>Shows what the auto-tune measured on this chip, and what survived real games since.</summary>
+    private void RefreshSilicon()
+    {
+        if (_settings.Silicon is not { } si || si.GpuName != Info.Name)
+        {
+            HasSilicon = false;
+            return;
+        }
+        HasSilicon = true;
+        SiliconHeadroom = $"+{si.HighestPassedOffsetMHz} MHz";
+        SiliconDaily = $"+{si.AppliedOffsetMHz} MHz";
+        var tracked = _stability.State.TrackedSettings;
+        SiliconGame = !tracked.IsStock && tracked.MaxCoreClockMHz is not null && _stability.State.Sessions.Count > 0 ? $"+{tracked.CoreOffsetMHz} MHz" : "henüz oyun yok";
+        SiliconText = si.ReachedSearchLimit
+            ? $"Bu çip testin üst sınırına kadar hatasız çalıştı; gerçek payı daha da yüksek olabilir. Ölçüm: {si.TestedAt.LocalDateTime:dd.MM.yyyy}."
+            : $"Bu çip, stok hızında +{si.HighestPassedOffsetMHz} MHz'e kadar hatasız çalıştı; üstünde hata verdi. Günlük kullanımda {si.HighestPassedOffsetMHz - si.AppliedOffsetMHz} MHz güvenlik payı bırakıldı. Ölçüm: {si.TestedAt.LocalDateTime:dd.MM.yyyy}.";
+    }
+
     private static void OpenUrl(string url)
     {
         if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
@@ -520,6 +734,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _telemetry.Dispose();
+        _stabilityTimer.Stop();
+        if (_sessions.Flush() is { } session && session.Duration >= TimeSpan.FromMinutes(2)) _stability.AddSession(session);
         _applyGuard.Dispose();
         if (IsTuning)
         {

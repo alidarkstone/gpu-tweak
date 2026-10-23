@@ -32,6 +32,22 @@ RivaTuner/Afterburner yeteneklerinde ama çok daha sade, kartına zarar vermemek
 
 Test sırasında bilgisayar kilitlenirse bir sonraki açılışta program stok ayarlarla başlar. "Kaldığı yerden devam" denince kilitlenen değer kararsız sayılır.
 
+## Oyun kararlılığı
+
+Program açıkken oyunları kendiliğinden algılar: GPU 30 saniye boyunca yoğun çalışırsa öndeki program oyun sayılır. Her 30 saniyede Windows olay kayıtlarına bakar:
+
+| Kayıt | Anlamı |
+|---|---|
+| Display 4101, nvlddmkm 13/14/153 | Ekran sürücüsü yanıt vermedi ve sıfırlandı |
+| Application Error 1000 / Hang 1002 | Bilinen bir oyun çöktü veya dondu |
+| Kernel-Power 41, BugCheck 1001 | Bilgisayar beklenmedik şekilde kapandı / mavi ekran |
+
+Özel ayarlar açıkken bunlardan biri olursa ayar bir adım güvenli tarafa çekilir (çekirdek −30 MHz, sonra bellek −250 MHz, sonra kilit ve güç limiti fabrika değerine) ve aynı ayarları tutan profiller de güncellenir. Oyunda titreyen doku, renkli nokta gibi bir bozulma görürsen **Artifact gördüm** düğmesine veya oyundayken **Ctrl+Shift+A**'ya bas: bu durumda önce bellek offset'i düşürülür. Kart varsayılan ayardayken olan sorunlar sadece kaydedilir. Aynı ayarlarla 10 saat sorunsuz oyundan sonra profili "Stabil" işaretleme önerilir. Kayıtlar `stability.json` dosyasındadır.
+
+## Silikon skoru
+
+Otomatik ayar bitince, çipin stok boost hızında hatasız kaldırdığı en yüksek çekirdek offset'i, günlük kullanılan değer ve oyunlarda kararlı kalan değer gösterilir. Bu, tahmini bir "ASIC kalitesi" değil, senin kartında ölçülen sonuçtur.
+
 ## Undervolt nasıl yapılır (NVIDIA)
 
 1. "Undervolt (max clock kilidi)" anahtarını aç ve max clock'u kartının oyunda gördüğün boost değerine yakın bir yere koy.
@@ -79,5 +95,9 @@ NVIDIA/AMD logoları ticari marka olduğu için exe içinde gelmez; widget'ta ma
 - [ ] Kaynaklı topluluk önerileri veritabanını doldurmak
 - [ ] AMD (ADLX)
 - [x] Windows ile başlatma
+- [x] Oyun kararlılığı takibi (Windows olay kayıtları) ve otomatik geri çekme, silikon skoru
+- [x] GPU sıcaklığı Min / Ort / Maks
+- [ ] Dil seçimi (Türkçe / English)
+- [ ] DX12 ışın izleme (DXR) stres testi
 - [ ] Fan eğrisi, sistem tepsisi
 - [ ] (Deneysel) V/F eğrisi editörü

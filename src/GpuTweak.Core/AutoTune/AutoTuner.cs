@@ -36,7 +36,9 @@ public sealed record TuneResult(
     double BaselinePowerW,
     double TunedPowerW,
     double BaselineTemperatureC,
-    double TunedTemperatureC)
+    double TunedTemperatureC,
+    int HighestPassedOffsetMHz = 0,
+    bool ReachedSearchLimit = false)
 {
     public static TuneResult Failed(string message) => new(false, message, null, 0, 0, 0, 0, 0, 0);
 }
@@ -177,7 +179,8 @@ public sealed class AutoTuner
                 return new TuneResult(true, message, settings,
                     journal.BaselineScore, validation.Result.Score,
                     journal.BaselinePowerW, validation.AvgPowerW,
-                    journal.BaselineTemperatureC, validation.MaxTemperatureC);
+                    journal.BaselineTemperatureC, validation.MaxTemperatureC,
+                    lastStable, lastStable + _options.StepMHz > limit);
             }
 
             SafeReset();

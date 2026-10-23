@@ -11,10 +11,10 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
     private readonly OverlayWindow _overlay;
-    private GlobalHotKey? _hotKey;
+    private GlobalHotKey? _hotKey, _artifactHotKey;
 
     // Layout design size (see the Viewbox in MainWindow.xaml); used to open the window with the right proportions.
-    private const double DesignWidth = 1400, DesignHeight = 1340;
+    private const double DesignWidth = 1400, DesignHeight = 1480;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -37,11 +37,15 @@ public partial class MainWindow : Window
             }
             _hotKey = new GlobalHotKey(this, GlobalHotKey.ModControl | GlobalHotKey.ModShift, (uint)KeyInterop.VirtualKeyFromKey(Key.O),
                 () => viewModel.Overlay.Enabled = !viewModel.Overlay.Enabled);
+            // Report an artifact without leaving the game.
+            _artifactHotKey = new GlobalHotKey(this, GlobalHotKey.ModControl | GlobalHotKey.ModShift, (uint)KeyInterop.VirtualKeyFromKey(Key.A),
+                () => { if (viewModel.ReportArtifactCommand.CanExecute(null)) viewModel.ReportArtifactCommand.Execute(null); }, id: 0x4755);
         };
         Loaded += (_, _) => _overlay.Show();
         Closed += (_, _) =>
         {
             _hotKey?.Dispose();
+            _artifactHotKey?.Dispose();
             _overlay.Close();
         };
     }

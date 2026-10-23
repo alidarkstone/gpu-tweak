@@ -23,11 +23,25 @@ public sealed record OverlaySettings
     public bool ShowLoad { get; init; } = true;
 }
 
+/// <summary>What the last successful auto-tune measured about this particular chip.</summary>
+public sealed record SiliconResult(
+    string GpuName,
+    /// <summary>Highest core offset that passed the self-checking test at the stock boost clock.</summary>
+    int HighestPassedOffsetMHz,
+    /// <summary>The search stopped at its own limit, so the chip may take even more.</summary>
+    bool ReachedSearchLimit,
+    /// <summary>The offset that was applied (highest passed minus a safety margin).</summary>
+    int AppliedOffsetMHz,
+    DateTimeOffset TestedAt);
+
 public sealed record AppSettings
 {
+    public SiliconResult? Silicon { get; init; }
     public OverlaySettings Overlay { get; init; } = new();
     public double ThermalLimitC { get; init; } = 88;
     public bool ShowLivePanel { get; init; } = true;
+    /// <summary>Step settings down automatically when a driver reset / crash is seen while gaming.</summary>
+    public bool AutoFixStability { get; init; } = true;
     public int PollIntervalMs { get; init; } = 1000;
 }
 
