@@ -48,7 +48,6 @@
  "{0} {1} algılandı. Öneri: {2}. (Otomatik düzeltme kapalı.)": "{0}: {1} detected. Suggestion: {2}. (Auto fix is off.)",
  "{0} {1} algılandı. Daha güvenli ayara geçildi: {2}.": "{0}: {1} detected. Switched to safer settings: {2}.",
  "\"{0}\" stabil işaretlendi. Açılışta otomatik uygulamak için \"Otomatik\" düğmesini aç.": "\"{0}\" marked stable. Turn on \"Auto\" to apply it at startup.",
- "henüz oyun yok": "no games yet",
  "Bu çip testin üst sınırına kadar hatasız çalıştı; gerçek payı daha da yüksek olabilir. Ölçüm: {0:dd.MM.yyyy}.": "This chip passed up to the test's upper limit; its real headroom may be even higher. Measured: {0:dd.MM.yyyy}.",
  "Bu çip, stok hızında +{0} MHz'e kadar hatasız çalıştı; üstünde hata verdi. Günlük kullanımda {1} MHz güvenlik payı bırakıldı. Ölçüm: {2:dd.MM.yyyy}.": "At stock clock this chip ran error-free up to +{0} MHz and failed above it. A {1} MHz safety margin is kept for daily use. Measured: {2:dd.MM.yyyy}.",
  "Sıcaklık": "Temp",
@@ -205,7 +204,6 @@
  "Otomatik Verimli": "Auto Efficient",
  " Uygulandı ve \"{0}\" profili olarak kaydedildi.": " Applied and saved as the \"{0}\" profile.",
  "Tatlı nokta: çekirdek +{0} MHz, güç limiti {1} W.": "Sweet spot: core +{0} MHz, power limit {1} W.",
- "Undervolt tatlı nokta": "Undervolt sweet spot",
  "Stres testi": "Stress test",
  "Şu anki ayarlarla 15 dakika tam yük. Her hesap kontrol edilir; ilk hatada durur.": "15 minutes of full load with the current settings. Every calculation is checked; stops at the first error.",
  "Stres testi çalışıyor": "Stress test running",
@@ -227,5 +225,6 @@
  "Otomatik: açık": "Auto: on",
  "Henüz kayıtlı profil yok. Ayarları yap, aşağıya bir ad yaz ve kaydet; profil burada bir satır olarak görünür ve tek tıkla geri uygulanır.": "No saved profiles yet. Set things up, type a name below and save; the profile shows up here as a row and can be applied again with one click.",
  "Profil adı yaz…": "Type a profile name…",
- "Yükle": "Load"
+ "Yükle": "Load",
+ "UV tatlı nokta": "UV sweet spot"
 }

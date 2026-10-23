@@ -26,11 +26,11 @@ RivaTuner/Afterburner yeteneklerinde ama çok daha sade, kartına zarar vermemek
 
 | Hedef | Ne yapar | Sonuç |
 |---|---|---|
-| Undervolt tatlı nokta | Hız stok boost'ta kilitli, voltaj FPS düşmeden gidebildiği en alta iner | Aynı FPS, daha serin ve sessiz |
+| UV tatlı nokta | Hız stok boost'ta kilitli, voltaj FPS düşmeden gidebildiği en alta iner | Aynı FPS, daha serin ve sessiz |
 | Performans | Overclock: kilit yok, güç limiti vBIOS maksimumu, çekirdek offset artar | Biraz daha fazla FPS, biraz daha sıcak |
 | Verimli | Hız stok boost'un %6 altında kilitli, voltaj düşer | FPS biraz düşer, güç ve ısı belirgin azalır |
 
-**Başlat** düğmesi kartı kendi kendine test eder (~20 dk). Aşağıdaki adımlar "Undervolt tatlı nokta" içindir; diğer hedefler aynı hata kontrolünü kullanır:
+**Başlat** düğmesi kartı kendi kendine test eder (~20 dk). Aşağıdaki adımlar "UV tatlı nokta" içindir; diğer hedefler aynı hata kontrolünü kullanır:
 
 1. Stok ayarlarda, hesap sonuçlarını kendisi doğrulayan bir DirectX 11 yükü çalıştırır ve referans sonuçları kaydeder.
 2. Kartın stokta ulaştığı en yüksek boost hızını ölçer ve max clock'u oraya kilitler, böylece hiçbir oyunda stoktan yavaş çalışmaz.

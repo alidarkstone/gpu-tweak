@@ -158,7 +158,7 @@
                                 </Grid>
                                 <Border CornerRadius="9" Background="{StaticResource FillBrush}" Padding="2" Margin="0,12,0,0" IsEnabled="{Binding CanChooseGoal}">
                                     <UniformGrid Columns="3">
-                                        <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Undervolt tatlı nokta" IsChecked="{Binding IsGoalCool, Mode=OneWay}" Command="{Binding SetGoalCommand}" CommandParameter="Cool"/>
+                                        <RadioButton Style="{StaticResource Segment}" local:Loc.Content="UV tatlı nokta" IsChecked="{Binding IsGoalCool, Mode=OneWay}" Command="{Binding SetGoalCommand}" CommandParameter="Cool"/>
                                         <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Performans" IsChecked="{Binding IsGoalPerformance, Mode=OneWay}" Command="{Binding SetGoalCommand}" CommandParameter="Performance"/>
                                         <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Verimli" IsChecked="{Binding IsGoalEfficient, Mode=OneWay}" Command="{Binding SetGoalCommand}" CommandParameter="Efficient"/>
                                     </UniformGrid>

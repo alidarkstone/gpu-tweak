@@ -194,7 +194,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private string? _status;
     private bool _statusIsWarning;
-    public string? Status { get => _status; set => Set(ref _status, value); }
+    private DispatcherTimer? _statusTimer;
+    /// <summary>The toast at the bottom; it hides itself after a while so it never covers the live panel for long.</summary>
+    public string? Status
+    {
+        get => _status;
+        set
+        {
+            if (!Set(ref _status, value)) return;
+            _statusTimer?.Stop();
+            if (value is null) return;
+            _statusTimer ??= new DispatcherTimer(DispatcherPriority.Background, _dispatcher);
+            _statusTimer.Interval = TimeSpan.FromSeconds(StatusIsWarning ? 25 : 12);
+            _statusTimer.Tick -= HideStatus;
+            _statusTimer.Tick += HideStatus;
+            _statusTimer.Start();
+        }
+    }
+
+    private void HideStatus(object? sender, EventArgs e)
+    {
+        _statusTimer?.Stop();
+        Status = null;
+    }
     public bool StatusIsWarning { get => _statusIsWarning; set => Set(ref _statusIsWarning, value); }
 
     // ---- Profiles ----
@@ -802,7 +824,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SiliconHeadroom = $"+{si.HighestPassedOffsetMHz} MHz";
         SiliconDaily = $"+{si.AppliedOffsetMHz} MHz";
         var tracked = _stability.State.TrackedSettings;
-        SiliconGame = !tracked.IsStock && tracked.MaxCoreClockMHz is not null && _stability.State.Sessions.Count > 0 ? $"+{tracked.CoreOffsetMHz} MHz" : L.T("henüz oyun yok");
+        SiliconGame = !tracked.IsStock && tracked.MaxCoreClockMHz is not null && _stability.State.Sessions.Count > 0 ? $"+{tracked.CoreOffsetMHz} MHz" : "–";
         SiliconText = si.ReachedSearchLimit
             ? L.F("Bu çip testin üst sınırına kadar hatasız çalıştı; gerçek payı daha da yüksek olabilir. Ölçüm: {0:dd.MM.yyyy}.", si.TestedAt.LocalDateTime)
             : L.F("Bu çip, stok hızında +{0} MHz'e kadar hatasız çalıştı; üstünde hata verdi. Günlük kullanımda {1} MHz güvenlik payı bırakıldı. Ölçüm: {2:dd.MM.yyyy}.", si.HighestPassedOffsetMHz, si.HighestPassedOffsetMHz - si.AppliedOffsetMHz, si.TestedAt.LocalDateTime);
