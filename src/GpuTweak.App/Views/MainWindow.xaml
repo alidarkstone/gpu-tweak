@@ -22,6 +22,7 @@
                 <Grid Margin="0,0,0,18">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
@@ -32,7 +33,22 @@
                         <TextBlock Text="{Binding Info.ShortName}" Style="{StaticResource LargeTitle}"/>
                         <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Caption}"/>
                     </StackPanel>
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Status messages live in the header, so they never cover the cards or the live panel. -->
+                    <Border Grid.Column="2" CornerRadius="10" Padding="12,7" Margin="24,0,16,0" HorizontalAlignment="Right" VerticalAlignment="Center" MaxWidth="620"
+                            Visibility="{Binding Status, Converter={x:Static local:Converters.NotEmptyToVisibility}}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="#33FFFFFF"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding StatusIsWarning}" Value="True">
+                                        <Setter Property="Background" Value="#665A3A10"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="{Binding Status}" TextWrapping="Wrap" FontSize="12"/>
+                    </Border>
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                     <Border CornerRadius="9" Background="{StaticResource FillBrush}" Padding="2" Margin="0,0,16,0" VerticalAlignment="Center" ToolTip="Dil / Language">
                         <StackPanel Orientation="Horizontal">
                             <RadioButton Style="{StaticResource Segment}" Content="TR" IsChecked="{Binding IsTurkish, Mode=OneWay}" Command="{Binding SetLanguageCommand}" CommandParameter="tr"/>
@@ -554,22 +570,8 @@
             </Grid>
         </Viewbox>
 
-        <!-- Bottom area: status toast and confirmation banner -->
+        <!-- Bottom area: confirmation banner -->
         <StackPanel VerticalAlignment="Bottom" Margin="28,0,28,20">
-            <Border CornerRadius="12" Padding="14,10" Margin="0,0,0,10" MaxWidth="760"
-                    Visibility="{Binding Status, Converter={x:Static local:Converters.NotEmptyToVisibility}}">
-                <Border.Style>
-                    <Style TargetType="Border">
-                        <Setter Property="Background" Value="#F23A3A3C"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding StatusIsWarning}" Value="True">
-                                <Setter Property="Background" Value="#F25A3A10"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Border.Style>
-                <TextBlock Text="{Binding Status}" TextWrapping="Wrap"/>
-            </Border>
 
             <Border CornerRadius="16" Padding="18,12" Background="#F20A84FF" MaxWidth="760"
                     Visibility="{Binding IsConfirmPending, Converter={StaticResource BoolToVisibility}}">
