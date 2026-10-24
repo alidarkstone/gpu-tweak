@@ -145,4 +145,70 @@ public sealed class StabilityTests : IDisposable
         Assert.Equal(TimeSpan.FromHours(3), tracker.State.CleanGameTime);
         Assert.Equal(Uv, tracker.State.TrackedSettings);
     }
+
+    [Fact]
+    public void RestartWhileIdleOnDesktopIsNotCounted()
+    {
+        var tracker = Tracker();
+        tracker.SettingsChanged(Uv);
+        tracker.Heartbeat(busy: true);
+        _now = _now.AddMinutes(30);
+        tracker.Heartbeat(busy: false);  // idle on the desktop, then the PC restarts
+
+        _now = _now.AddMinutes(2);
+        var restarted = Tracker();
+        _source.Events.Add(new(_now.AddSeconds(-30), IncidentKind.SystemCrash, "Kernel-Power 41"));
+        var update = Assert.Single(restarted.Check());
+        Assert.True(update.Incident.Ignored);
+        Assert.Null(update.Adjustment);
+        Assert.Equal(Uv, restarted.State.TrackedSettings);
+    }
+
+    [Fact]
+    public void RestartUnderLoadStepsDown()
+    {
+        var tracker = Tracker();
+        tracker.SettingsChanged(Uv);
+        _now = _now.AddMinutes(30);
+        tracker.Heartbeat(busy: true);  // the PC goes down in the middle of a game
+
+        _now = _now.AddMinutes(2);
+        var restarted = Tracker();
+        _source.Events.Add(new(_now.AddSeconds(-30), IncidentKind.SystemCrash, "Kernel-Power 41"));
+        var update = Assert.Single(restarted.Check());
+        Assert.False(update.Incident.Ignored);
+        Assert.Equal(105, update.Adjustment!.Settings.CoreOffsetMHz);
+    }
+
+    [Fact]
+    public void LastStepDownCanBeUndone()
+    {
+        var tracker = Tracker();
+        tracker.SettingsChanged(Uv);
+        _now = _now.AddMinutes(5);
+        _source.Events.Add(new(_now.AddMinutes(-1), IncidentKind.DriverReset, "nvlddmkm"));
+        tracker.Check();
+
+        var undo = tracker.UndoLastAdjustment()!;
+        Assert.Equal(105, undo.From.CoreOffsetMHz);
+        Assert.Equal(Uv, undo.Settings);
+        Assert.Equal(Uv, tracker.State.TrackedSettings);
+        Assert.True(Assert.Single(tracker.State.Incidents).Ignored);
+        Assert.Null(tracker.UndoLastAdjustment());
+    }
+
+    [Fact]
+    public void StepDownFromOlderVersionCanBeUndone()
+    {
+        var stepped = Uv with { CoreOffsetMHz = 105 };
+        var old = new StabilityState
+        {
+            LastCheckedAt = _now, TrackedSettings = stepped, CustomActive = true,
+            Incidents = [new(_now.AddMinutes(-1), IncidentKind.SystemCrash, "Kernel-Power 41")],
+        };
+        File.WriteAllText(Path.Combine(_dir, "stability.json"), System.Text.Json.JsonSerializer.Serialize(old, JsonDefaults.Options));
+
+        var undo = Tracker().UndoLastAdjustment()!;
+        Assert.Equal(Uv, undo.Settings);
+    }
 }

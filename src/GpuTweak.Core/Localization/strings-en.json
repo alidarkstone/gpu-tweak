@@ -164,7 +164,7 @@
  "Profillerim": "My profiles",
  "Sadece stabil işaretlenen profiller açılışta otomatik uygulanabilir.": "Only profiles marked stable can be applied automatically at startup.",
  "Windows ile başlat": "Start with Windows",
- "Bilgisayar açılınca program küçültülmüş başlar ve \"Otomatik: açık\" profili yeniden uygular. Ekran kartı ayarları her yeniden başlatmada sıfırlandığı için gerekli.": "When the PC starts, the app opens minimized and re-applies the \"Auto: on\" profile. Needed because GPU settings reset on every reboot.",
+ "Bilgisayar açılınca program saatin yanındaki simgede gizli başlar ve \"Otomatik: açık\" profili yeniden uygular. Ekran kartı ayarları her yeniden başlatmada sıfırlandığı için gerekli.": "When the PC starts, the app starts hidden in the notification area (next to the clock) and re-applies the \"Auto: on\" profile. Needed because GPU settings reset on every reboot.",
  "Ayarların kaydedildiği klasörü aç": "Open the settings folder",
  "Oyunlarda test ettikten sonra stabil olarak işaretle": "Mark as stable after testing in games",
  "Uygulama açılınca bu profili uygula": "Apply this profile when the app starts",
@@ -262,5 +262,10 @@
  "Bellek ayarı uygulandı: +{0} MHz. Oyunlarda doku bozulması görürsen \"Artifact gördüm\"e bas.": "Memory setting applied: +{0} MHz. If you see texture glitches in games, press \"I saw an artifact\".",
  "Bellek yükü": "Memory load",
  "{0:N0} bellek hatası": "{0:N0} memory errors",
- "Bellek OC": "Memory OC"
+ "Bellek OC": "Memory OC",
+ "(sayılmadı)": "(not counted)",
+ "Bilgisayar beklenmedik şekilde yeniden başladı, ama o sırada ekran kartı boştaydı (oyun ya da yük yoktu). Ayarlarla ilgisi olmadığı için hiçbir şey değiştirilmedi.": "The PC restarted unexpectedly, but the graphics card was idle at the time (no game or load). It has nothing to do with the settings, so nothing was changed.",
+ "Önceki ayara dönüldü: çekirdek +{0} MHz, bellek +{1} MHz. Bu sorun ayarlara sayılmayacak.": "Back to the previous settings: core +{0} MHz, memory +{1} MHz. This problem will not count against the settings.",
+ "Sorun ayarlardan kaynaklanmadıysa (başka bir program, elektrik kesintisi) son düzeltmeyi geri alabilirsin.": "If the problem was not caused by the settings (another program, a power cut), you can undo the last correction.",
+ "Son düzeltmeyi geri al": "Undo last correction"
 }

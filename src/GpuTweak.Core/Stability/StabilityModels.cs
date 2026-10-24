@@ -14,7 +14,11 @@ public enum IncidentKind
     UserReportedArtifact,
 }
 
-public sealed record StabilityIncident(DateTimeOffset Time, IncidentKind Kind, string Description, string? Game = null);
+/// <param name="Ignored">
+/// Logged but not held against the settings: a restart while the GPU was idle (another program, power cut, Windows
+/// update), or one the user said was not caused by the settings.
+/// </param>
+public sealed record StabilityIncident(DateTimeOffset Time, IncidentKind Kind, string Description, string? Game = null, bool Ignored = false);
 
 /// <summary>One stretch of gaming, detected from sustained GPU load.</summary>
 public sealed record GameSession(
@@ -43,4 +47,9 @@ public sealed record StabilityState
     public TimeSpan CleanGameTime { get; init; }
     public List<StabilityIncident> Incidents { get; init; } = [];
     public List<GameSession> Sessions { get; init; } = [];
+    /// <summary>Last time Tweakstone was running, and last time the GPU was busy; a restart is only blamed on the settings when they were close.</summary>
+    public DateTimeOffset? LastAliveAt { get; init; }
+    public DateTimeOffset? LastBusyAt { get; init; }
+    /// <summary>The most recent automatic step-down, so the user can undo it when the problem was not the card's.</summary>
+    public Adjustment? LastAdjustment { get; init; }
 }

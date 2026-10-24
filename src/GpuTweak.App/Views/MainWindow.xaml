@@ -390,6 +390,11 @@
                                 </ItemsControl>
                                 <TextBlock Style="{StaticResource Caption}" Foreground="{StaticResource OrangeBrush}" Text="{Binding Stability.LastChange}"
                                            Visibility="{Binding Stability.LastChange, Converter={x:Static local:Converters.NotEmptyToVisibility}}"/>
+                                <StackPanel Visibility="{Binding Stability.CanUndo, Converter={StaticResource BoolToVisibility}}" Margin="0,8,0,0">
+                                    <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" local:Loc.Text="Sorun ayarlardan kaynaklanmadıysa (başka bir program, elektrik kesintisi) son düzeltmeyi geri alabilirsin."/>
+                                    <Button Style="{StaticResource PillButton}" Background="#33FFFFFF" Foreground="White" HorizontalAlignment="Left" Margin="0,6,0,0"
+                                            local:Loc.Content="Son düzeltmeyi geri al" Command="{Binding UndoStabilityCommand}"/>
+                                </StackPanel>
 
                                 <Rectangle Height="1" Fill="{StaticResource SeparatorBrush}" Margin="0,14"/>
                                 <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutoFixStability}">
@@ -421,7 +426,7 @@
                                     <StackPanel>
                                         <TextBlock local:Loc.Text="Windows ile başlat"/>
                                         <TextBlock Style="{StaticResource Caption}"
-                                                   local:Loc.Text="Bilgisayar açılınca program küçültülmüş başlar ve &quot;Otomatik: açık&quot; profili yeniden uygular. Ekran kartı ayarları her yeniden başlatmada sıfırlandığı için gerekli."/>
+                                                   local:Loc.Text="Bilgisayar açılınca program saatin yanındaki simgede gizli başlar ve &quot;Otomatik: açık&quot; profili yeniden uygular. Ekran kartı ayarları her yeniden başlatmada sıfırlandığı için gerekli."/>
                                     </StackPanel>
                                 </CheckBox>
                                 <Button Style="{StaticResource LinkButton}" local:Loc.Content="Ayarların kaydedildiği klasörü aç" HorizontalAlignment="Left" Margin="-6,6,0,0"

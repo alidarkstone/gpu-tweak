@@ -1,4 +1,5 @@
 using System.Text.Json;
+using GpuTweak.Core.Localization;
 using GpuTweak.Core.Models;
 
 namespace GpuTweak.Core.Stability;
@@ -18,11 +19,17 @@ public sealed record TrackerUpdate(StabilityIncident Incident, Adjustment? Adjus
 public sealed class StabilityTracker
 {
     private const int MaxIncidents = 100, MaxSessions = 200;
+    /// <summary>A restart counts only if the GPU was busy this close to the last moment Tweakstone was seen running.</summary>
+    public static readonly TimeSpan BusyBeforeCrash = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan HeartbeatSaveInterval = TimeSpan.FromSeconds(15);
     private readonly string _path;
     private readonly IIncidentSource _source;
     private readonly Func<DateTimeOffset> _now;
     private readonly object _gate = new();
     private StabilityState _state;
+    /// <summary>What the previous run last saw; read once at start, before this run's heartbeats overwrite it.</summary>
+    private readonly DateTimeOffset? _previousAlive, _previousBusy;
+    private DateTimeOffset _lastHeartbeatSave;
 
     public StabilityTracker(string dataDirectory, IIncidentSource source, Func<DateTimeOffset>? now = null)
     {
@@ -30,6 +37,8 @@ public sealed class StabilityTracker
         _source = source;
         _now = now ?? (() => DateTimeOffset.Now);
         _state = Load();
+        _previousAlive = _state.LastAliveAt;
+        _previousBusy = _state.LastBusyAt;
     }
 
     public StabilityState State => _state;
@@ -44,6 +53,40 @@ public sealed class StabilityTracker
         {
             _state = _state with { LastCheckedAt = _now() };
             Save();
+        }
+    }
+
+    /// <summary>
+    /// Call with every telemetry sample. Saved now and then, so after a sudden restart the next run knows whether
+    /// the GPU was working (a game, a test) or idle on the desktop when it happened.
+    /// </summary>
+    public void Heartbeat(bool busy)
+    {
+        lock (_gate)
+        {
+            var now = _now();
+            _state = _state with { LastAliveAt = now, LastBusyAt = busy ? now : _state.LastBusyAt };
+            if (now - _lastHeartbeatSave < HeartbeatSaveInterval) return;
+            _lastHeartbeatSave = now;
+            Save();
+        }
+    }
+
+    /// <summary>
+    /// Takes back the last automatic step-down (the user says the problem was not the card's): the incident stops
+    /// counting and the returned adjustment leads back to the earlier settings. Null when there is nothing to undo.
+    /// </summary>
+    public Adjustment? UndoLastAdjustment()
+    {
+        lock (_gate)
+        {
+            if (_state.LastAdjustment is not { } last || _state.TrackedSettings != last.Settings) return null;
+            var incidents = new List<StabilityIncident>(_state.Incidents);
+            var index = incidents.FindLastIndex(i => !i.Ignored);
+            if (index >= 0) incidents[index] = incidents[index] with { Ignored = true };
+            _state = _state with { Incidents = incidents, TrackedSettings = last.From, LastAdjustment = null };
+            Save();
+            return new Adjustment(last.Settings, last.From, last.Description);
         }
     }
 
@@ -89,7 +132,8 @@ public sealed class StabilityTracker
             _state = _state with { LastCheckedAt = now };
 
             var updates = new List<TrackerUpdate>();
-            foreach (var incident in incidents) updates.Add(Record(incident));
+            foreach (var incident in incidents)
+                updates.Add(Record(incident.Kind == IncidentKind.SystemCrash && !WasBusyBeforeCrash(incident) ? incident with { Ignored = true } : incident));
             Save();
             return updates;
         }
@@ -120,7 +164,7 @@ public sealed class StabilityTracker
         if (incidents.Count > MaxIncidents) incidents.RemoveRange(0, incidents.Count - MaxIncidents);
         _state = _state with { Incidents = incidents };
         // A problem while the card ran at stock says nothing about the custom settings.
-        if (!_state.CustomActive)
+        if (!_state.CustomActive || incident.Ignored)
         {
             if (save) Save();
             return new TrackerUpdate(incident, null);
@@ -129,9 +173,20 @@ public sealed class StabilityTracker
         _state = _state with { CleanGameTime = TimeSpan.Zero };
         var adjustment = StabilityAdvisor.StepDown(_state.TrackedSettings, incident.Kind);
         if (adjustment is not null && AutoAdjust)
-            _state = _state with { TrackedSettings = adjustment.Settings, SettingsSince = _now() };
+            _state = _state with { TrackedSettings = adjustment.Settings, SettingsSince = _now(), LastAdjustment = adjustment };
         if (save) Save();
         return new TrackerUpdate(incident, adjustment);
+    }
+
+    /// <summary>
+    /// Windows logs an unexpected restart at the next boot, so its time says nothing about what was running.
+    /// What the previous run saw last does: a restart while the GPU sat idle on the desktop is not the settings' fault
+    /// (an undervolt fails under load). Without that information (older version, Tweakstone not running) it counts.
+    /// </summary>
+    private bool WasBusyBeforeCrash(StabilityIncident incident)
+    {
+        if (_previousAlive is not { } alive || alive > incident.Time) return true;
+        return _previousBusy is { } busy && alive - busy <= BusyBeforeCrash;
     }
 
     private StabilityState Load()
@@ -139,10 +194,24 @@ public sealed class StabilityTracker
         try
         {
             if (File.Exists(_path))
-                return JsonSerializer.Deserialize<StabilityState>(File.ReadAllText(_path), JsonDefaults.Options) ?? new StabilityState { LastCheckedAt = _now() };
+                return Migrate(JsonSerializer.Deserialize<StabilityState>(File.ReadAllText(_path), JsonDefaults.Options) ?? new StabilityState { LastCheckedAt = _now() });
         }
         catch (JsonException) { }
         return new StabilityState { LastCheckedAt = _now(), SettingsSince = _now() };
+    }
+
+    /// <summary>
+    /// Versions before 0.12 did not remember their step-downs. If the last thing that happened was a core step-down
+    /// after a crash, rebuild it so it can be undone.
+    /// </summary>
+    private static StabilityState Migrate(StabilityState state)
+    {
+        if (state.LastAliveAt is not null || state.LastAdjustment is not null || !state.CustomActive) return state;
+        if (state.Incidents.LastOrDefault() is not { Ignored: false, Kind: not IncidentKind.UserReportedArtifact }) return state;
+        var settings = state.TrackedSettings;
+        if (settings.CoreOffsetMHz <= 0) return state;
+        var from = settings with { CoreOffsetMHz = settings.CoreOffsetMHz + StabilityAdvisor.CoreStepMHz };
+        return state with { LastAdjustment = new Adjustment(from, settings, L.F("çekirdek offset +{0} → +{1} MHz", from.CoreOffsetMHz, settings.CoreOffsetMHz)) };
     }
 
     private void Save()

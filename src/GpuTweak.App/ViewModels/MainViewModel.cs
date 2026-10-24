@@ -76,6 +76,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         StartTuneCommand = new RelayCommand(() => _ = StartTuneAsync(resume: false), () => !IsTuning && !IsConfirmPending);
         ResumeTuneCommand = new RelayCommand(() => _ = StartTuneAsync(resume: true), () => !IsTuning && PendingJournal is not null);
         StopTuneCommand = new RelayCommand(() => _tuneCts?.Cancel(), () => IsTuning);
+        UndoStabilityCommand = new RelayCommand(UndoStabilityChange, () => !IsTuning && !IsConfirmPending);
         StartStressCommand = new RelayCommand(() => _ = StartStressAsync(), () => !IsTuning && !IsConfirmPending);
         SaveProfileCommand = new RelayCommand(SaveProfile, () => !string.IsNullOrWhiteSpace(NewProfileName));
         LoadProfileCommand = new RelayCommand(p =>
@@ -402,6 +403,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ICommand StartTuneCommand { get; }
     public ICommand ResumeTuneCommand { get; }
     public ICommand StopTuneCommand { get; }
+    public ICommand UndoStabilityCommand { get; }
     public ICommand StartStressCommand { get; }
     public ICommand ApplyCommand { get; }
     public ICommand ResetCommand { get; }
@@ -611,6 +613,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Overlay.Update(s, _frameRates.Sample(ForegroundApp.ProcessId(), PresentEventSource.Seconds(DateTime.Now)));
         Monitor.OnSample(s);
         if (!IsTuning) FeedSession(s);
+        _stability.Heartbeat(busy: IsTuning || (s.LoadPercent ?? 0) >= 50 || _sessions.CurrentGame is not null);
 
         // While tuning, the tuner watches temperature itself (with a lower limit) and resets between steps.
         if (!IsTuning && _thermalGuard.ShouldRevert(s, IsCustomActive || IsConfirmPending))
@@ -818,7 +821,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             };
             if (incident.Kind == IncidentKind.SystemCrash) where = L.T("Bilgisayarda");
 
-            if (adjustment is null)
+            if (incident.Ignored)
+            {
+                Status = L.T("Bilgisayar beklenmedik şekilde yeniden başladı, ama o sırada ekran kartı boştaydı (oyun ya da yük yoktu). Ayarlarla ilgisi olmadığı için hiçbir şey değiştirilmedi.");
+                StatusIsWarning = false;
+            }
+            else if (adjustment is null)
             {
                 Status = L.F("{0} {1} kaydedildi. Kart varsayılan ayarlardaydı, ayarlarla ilgisi yok.", where, what);
                 StatusIsWarning = false;
@@ -842,6 +850,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             UpdateCanMarkStable();
             RefreshSilicon();
         }
+    }
+
+    private void UndoStabilityChange()
+    {
+        if (_stability.UndoLastAdjustment() is not { } undo) return;
+        StepDown(undo);
+        Stability.LastChange = "";
+        Status = L.F("Önceki ayara dönüldü: çekirdek +{0} MHz, bellek +{1} MHz. Bu sorun ayarlara sayılmayacak.", undo.Settings.CoreOffsetMHz, undo.Settings.MemoryOffsetMHz);
+        StatusIsWarning = false;
+        Stability.Update(_stability.State, _sessions.CurrentGame);
+        UpdateCanMarkStable();
+        RefreshSilicon();
     }
 
     private void StepDown(Adjustment adjustment)
