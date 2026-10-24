@@ -4,6 +4,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <Version>0.11.2</Version>
+    <Version>0.11.3</Version>
   </PropertyGroup>
 </Project>

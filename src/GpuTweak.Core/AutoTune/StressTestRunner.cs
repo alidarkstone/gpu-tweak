@@ -156,7 +156,7 @@ public sealed class StressTestRunner(IGpuBackend backend, IStressTest stress, St
 
                 // Throughput is only comparable between full-clock segments.
                 var relative = 0.0;
-                if (segment.ClockCapMHz is null && result.Passed)
+                if (segment.ClockCapMHz is null && result.Passed && result.Score > 0)  // load-spike parts report no throughput
                 {
                     firstScore ??= result.Score;
                     relative = firstScore > 0 ? result.Score / firstScore.Value : 0;
