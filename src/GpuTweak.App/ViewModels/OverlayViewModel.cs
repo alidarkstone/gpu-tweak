@@ -20,7 +20,6 @@ public sealed class OverlayViewModel : ObservableObject
         Info = info;
         _settings = settings;
         CustomLogo = LoadCustomLogo(info.Vendor);
-        _hasMemoryTemperature = info.Vendor == GpuVendor.Nvidia;
     }
 
     public event Action<OverlaySettings>? SettingsChanged;
@@ -69,10 +68,7 @@ public sealed class OverlayViewModel : ObservableObject
     }
 
     private GpuTelemetry? _last;
-    /// <summary>
-    /// NVIDIA cards report memory temperature only some of the time (often not at idle), so the row is always
-    /// there for them, with "–" while there is no reading. Other cards show it once they have reported it.
-    /// </summary>
+    /// <summary>Once the card has reported a memory temperature, the row stays (with "–" while there is no reading).</summary>
     private bool _hasMemoryTemperature;
     private FrameRate? _lastFps;
 

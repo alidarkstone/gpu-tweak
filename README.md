@@ -41,9 +41,9 @@ RivaTuner/Afterburner yeteneklerinde ama çok daha sade, kartına zarar vermemek
 
 Test sırasında bilgisayar kilitlenirse bir sonraki açılışta program stok ayarlarla başlar. "Kaldığı yerden devam" denince kilitlenen değer kararsız sayılır.
 
-## Bellek sıcaklığı (deneysel)
+## Bellek sıcaklığı
 
-GeForce kartlar bellek sıcaklığını NVIDIA'nın resmi arayüzü NVML'e vermez (`nvidia-smi` bile "N/A" gösterir). Tweakstone önce NVML'i dener. Değer gelmezse HWiNFO ve LibreHardwareMonitor'ün kullandığı belgelenmemiş NVAPI sensör çağrısıyla okur. Bu yol sadece okuma yapar, karta hiçbir şey yazmaz. Bellek sensörünün yeri LibreHardwareMonitor'den alındı: RTX 50'de 2, RTX 40'ta 7, daha eskilerde 9. Birden fazla NVIDIA kartı olan bilgisayarlarda, hangi kartın değeri olduğu ayırt edilemediği için kapalıdır. Değeri HWiNFO'daki "GPU Memory Junction Temperature" ile karşılaştırarak doğrulayabilirsin.
+Bellek sıcaklığı sadece kart bunu NVIDIA'nın resmi arayüzü NVML'e veriyorsa gösterilir. Çoğu GeForce kart, RTX 5080 de dahil, bu değeri vermez (`nvidia-smi` "N/A" gösterir). O zaman satır görünmez. Belgelenmemiş NVAPI ile okumayı v0.11.1'de denedik. Windows Defender o sürümü yanlış alarmla engellediği için bu özellik kaldırıldı.
 
 ## Bellek OC
 

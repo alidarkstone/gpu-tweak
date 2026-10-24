@@ -52,7 +52,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _applyGuard.Completed += (outcome, settings) => _dispatcher.BeginInvoke(() => OnApplyCompleted(outcome, settings));
 
         Info = backend.Info;
-        if (Info.Vendor == GpuVendor.Nvidia) _memoryTemperature = "–";  // see OverlayViewModel._hasMemoryTemperature
         Limits = backend.Limits;
         Overlay = new OverlayViewModel(Info, _settings.Overlay);
         Overlay.SettingsChanged += s => { _settings = _settings with { Overlay = s }; _settingsStore.Save(_settings); };
