@@ -268,21 +268,21 @@
 
                                 <Grid>
                                     <TextBlock local:Loc.Text="Çekirdek clock offset"/>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><TextBox Style="{StaticResource ValueBox}" local:Loc.ToolTip="Tıkla, değeri yaz, sonra boş bir yere tıkla" Text="{Binding CoreOffset, Converter={x:Static local:ValueBox.Signed}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding SupportsOffsets}"/><TextBlock Style="{StaticResource SettingValue}" VerticalAlignment="Center" Text=" MHz"/></StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><TextBox Style="{StaticResource ValueBox}" local:Loc.ToolTip="Tıkla, değeri yaz ve Enter'a bas" Text="{Binding CoreOffset, Converter={x:Static local:ValueBox.Signed}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding SupportsOffsets}"><TextBox.InputBindings><KeyBinding Key="Return" Command="{x:Static local:ValueBox.Commit}"/></TextBox.InputBindings></TextBox><TextBlock Style="{StaticResource SettingValue}" VerticalAlignment="Center" Text=" MHz"/></StackPanel>
                                 </Grid>
                                 <Slider Minimum="{Binding Limits.CoreOffsetMinMHz}" Maximum="{Binding Limits.CoreOffsetMaxMHz}" Value="{Binding CoreOffset}"
                                         TickFrequency="15" IsSnapToTickEnabled="True" SmallChange="15" LargeChange="60" IsEnabled="{Binding SupportsOffsets}"/>
 
                                 <Grid Margin="0,14,0,0">
                                     <TextBlock local:Loc.Text="Bellek clock offset"/>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><TextBox Style="{StaticResource ValueBox}" local:Loc.ToolTip="Tıkla, değeri yaz, sonra boş bir yere tıkla" Text="{Binding MemoryOffset, Converter={x:Static local:ValueBox.Signed}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding SupportsOffsets}"/><TextBlock Style="{StaticResource SettingValue}" VerticalAlignment="Center" Text=" MHz"/></StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><TextBox Style="{StaticResource ValueBox}" local:Loc.ToolTip="Tıkla, değeri yaz ve Enter'a bas" Text="{Binding MemoryOffset, Converter={x:Static local:ValueBox.Signed}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding SupportsOffsets}"><TextBox.InputBindings><KeyBinding Key="Return" Command="{x:Static local:ValueBox.Commit}"/></TextBox.InputBindings></TextBox><TextBlock Style="{StaticResource SettingValue}" VerticalAlignment="Center" Text=" MHz"/></StackPanel>
                                 </Grid>
                                 <Slider Minimum="{Binding Limits.MemoryOffsetMinMHz}" Maximum="{Binding Limits.MemoryOffsetMaxMHz}" Value="{Binding MemoryOffset}"
                                         TickFrequency="50" IsSnapToTickEnabled="True" SmallChange="50" LargeChange="250" IsEnabled="{Binding SupportsOffsets}"/>
 
                                 <Grid Margin="0,14,0,0">
                                     <TextBlock local:Loc.Text="Güç limiti"/>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><TextBox Style="{StaticResource ValueBox}" local:Loc.ToolTip="Tıkla, değeri yaz, sonra boş bir yere tıkla" Text="{Binding PowerLimit, Converter={x:Static local:ValueBox.Plain}, UpdateSourceTrigger=LostFocus}"/><TextBlock Style="{StaticResource SettingValue}" VerticalAlignment="Center" Text=" W  "/><TextBlock Style="{StaticResource SettingValue}" VerticalAlignment="Center" Text="{Binding PowerPercentText}" Foreground="{StaticResource SecondaryTextBrush}"/></StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><TextBox Style="{StaticResource ValueBox}" local:Loc.ToolTip="Tıkla, değeri yaz ve Enter'a bas" Text="{Binding PowerLimit, Converter={x:Static local:ValueBox.Plain}, UpdateSourceTrigger=LostFocus}"><TextBox.InputBindings><KeyBinding Key="Return" Command="{x:Static local:ValueBox.Commit}"/></TextBox.InputBindings></TextBox><TextBlock Style="{StaticResource SettingValue}" VerticalAlignment="Center" Text=" W  "/><TextBlock Style="{StaticResource SettingValue}" VerticalAlignment="Center" Text="{Binding PowerPercentText}" Foreground="{StaticResource SecondaryTextBrush}"/></StackPanel>
                                 </Grid>
                                 <Slider Minimum="{Binding Limits.PowerMinW}" Maximum="{Binding Limits.PowerMaxW}" Value="{Binding PowerLimit}"
                                         TickFrequency="5" IsSnapToTickEnabled="True" SmallChange="5" LargeChange="20"/>
@@ -299,7 +299,7 @@
                                 <StackPanel Visibility="{Binding UseClockCap, Converter={StaticResource BoolToVisibility}}" Margin="0,10,0,0">
                                     <Grid>
                                         <TextBlock local:Loc.Text="Max çekirdek clock"/>
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><TextBox Style="{StaticResource ValueBox}" local:Loc.ToolTip="Tıkla, değeri yaz, sonra boş bir yere tıkla" Text="{Binding MaxClock, Converter={x:Static local:ValueBox.Plain}, UpdateSourceTrigger=LostFocus}"/><TextBlock Style="{StaticResource SettingValue}" VerticalAlignment="Center" Text=" MHz"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><TextBox Style="{StaticResource ValueBox}" local:Loc.ToolTip="Tıkla, değeri yaz ve Enter'a bas" Text="{Binding MaxClock, Converter={x:Static local:ValueBox.Plain}, UpdateSourceTrigger=LostFocus}"><TextBox.InputBindings><KeyBinding Key="Return" Command="{x:Static local:ValueBox.Commit}"/></TextBox.InputBindings></TextBox><TextBlock Style="{StaticResource SettingValue}" VerticalAlignment="Center" Text=" MHz"/></StackPanel>
                                     </Grid>
                                     <Slider Minimum="{Binding Limits.CoreClockMinMHz}" Maximum="{Binding Limits.CoreClockMaxMHz}" Value="{Binding MaxClock}"
                                             TickFrequency="15" IsSnapToTickEnabled="True" SmallChange="15" LargeChange="60"/>
@@ -316,7 +316,7 @@
                                 <StackPanel Visibility="{Binding ManualFan, Converter={StaticResource BoolToVisibility}}" Margin="0,10,0,0">
                                     <Grid>
                                         <TextBlock Text="Fan"/>
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><TextBox Style="{StaticResource ValueBox}" local:Loc.ToolTip="Tıkla, değeri yaz, sonra boş bir yere tıkla" Text="{Binding FanPercent, Converter={x:Static local:ValueBox.Plain}, UpdateSourceTrigger=LostFocus}"/><TextBlock Style="{StaticResource SettingValue}" VerticalAlignment="Center" Text=" %"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><TextBox Style="{StaticResource ValueBox}" local:Loc.ToolTip="Tıkla, değeri yaz ve Enter'a bas" Text="{Binding FanPercent, Converter={x:Static local:ValueBox.Plain}, UpdateSourceTrigger=LostFocus}"><TextBox.InputBindings><KeyBinding Key="Return" Command="{x:Static local:ValueBox.Commit}"/></TextBox.InputBindings></TextBox><TextBlock Style="{StaticResource SettingValue}" VerticalAlignment="Center" Text=" %"/></StackPanel>
                                     </Grid>
                                     <Slider Minimum="{Binding Limits.FanMinPercent}" Maximum="{Binding Limits.FanMaxPercent}" Value="{Binding FanPercent}"
                                             TickFrequency="5" IsSnapToTickEnabled="True"/>

@@ -1,15 +1,28 @@
 using System.Globalization;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
+using GpuTweak.App.ViewModels;
 
 namespace GpuTweak.App.Views;
 
 /// <summary>
 /// Converters for the number next to a slider, which doubles as a text box for values the slider is too coarse to
-/// hit (e.g. +405). The value is taken when the box loses focus (Tab or a click elsewhere). No key handling on purpose:
-/// v0.12.1 had key and mouse hooks here and was flagged by Defender's ML heuristic (likely, not confirmed, the cause).
+/// hit (e.g. +405). The value is taken on Enter (a plain XAML KeyBinding to <see cref="Commit"/>) or when the box
+/// loses focus. No key event handlers on purpose: v0.12.1 had key and mouse hooks here and was flagged by
+/// Defender's ML heuristic (likely, not confirmed, the cause).
 /// </summary>
 public static class ValueBox
 {
+    /// <summary>Takes the typed value of the focused box.</summary>
+    public static ICommand Commit { get; } = new RelayCommand(_ =>
+    {
+        if (Application.Current?.MainWindow is not { } window || FocusManager.GetFocusedElement(window) is not TextBox box) return;
+        box.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+        box.SelectAll();
+    });
+
     /// <summary>Shows "+405" and reads back "405", "+405", "405 MHz" or "-30".</summary>
     public static IValueConverter Signed { get; } = new NumberConverter(signed: true);
     public static IValueConverter Plain { get; } = new NumberConverter(signed: false);

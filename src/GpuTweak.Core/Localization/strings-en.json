@@ -269,5 +269,5 @@
  "Sorun ayarlardan kaynaklanmadıysa (başka bir program, elektrik kesintisi) son düzeltmeyi geri alabilirsin.": "If the problem was not caused by the settings (another program, a power cut), you can undo the last correction.",
  "Son düzeltmeyi geri al": "Undo last correction",
  "Bu sorun artık ayarlara sayılmayacak. Ayarların değiştirilmedi.": "This problem will no longer count against the settings. Your settings were not changed.",
- "Tıkla, değeri yaz, sonra boş bir yere tıkla": "Click, type the value, then click anywhere else"
+ "Tıkla, değeri yaz ve Enter'a bas": "Click, type the value and press Enter"
 }
