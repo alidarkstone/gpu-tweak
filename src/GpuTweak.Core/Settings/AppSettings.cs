@@ -32,7 +32,9 @@ public sealed record SiliconResult(
     bool ReachedSearchLimit,
     /// <summary>The offset that was applied (highest passed minus a safety margin).</summary>
     int AppliedOffsetMHz,
-    DateTimeOffset TestedAt);
+    DateTimeOffset TestedAt,
+    /// <summary>AMD: the two values are millivolts of undervolt instead of MHz of core offset.</summary>
+    bool Millivolts = false);
 
 public sealed record AppSettings
 {

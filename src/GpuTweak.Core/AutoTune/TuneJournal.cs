@@ -28,12 +28,27 @@ public sealed record TuneJournal(
     int LastStableOffsetMHz,
     int? TestingOffsetMHz,
     DateTimeOffset StartedAt,
-    TuneGoal Goal = TuneGoal.Cool)
+    TuneGoal Goal = TuneGoal.Cool,
+    /// <summary>
+    /// AMD: the steps are millivolts of undervolt (the offset fields hold the depth, e.g. 50 = -50 mV), and
+    /// <see cref="CapOffsetMHz"/> lowers the max clock for the efficient goal.
+    /// </summary>
+    bool VoltageMode = false,
+    int CapOffsetMHz = 0)
 {
     private const string FileName = "autotune.json";
 
+    /// <summary>"+45 MHz" or "-50 mV", for messages.</summary>
+    public string Label(int step) => VoltageMode ? $"-{step} mV" : $"+{step} MHz";
+
     /// <summary>The settings a step at <paramref name="offsetMHz"/> runs with, for this journal's goal.</summary>
-    public TuningSettings Settings(int offsetMHz, int powerMaxW) => Goal switch
+    public TuningSettings Settings(int offsetMHz, int powerMaxW) => VoltageMode
+        ? new TuningSettings(
+            CoreOffsetMHz: CapOffsetMHz,
+            // Power limits are percent on AMD; 100 is stock and needs no setting.
+            PowerLimitW: Goal == TuneGoal.Performance && powerMaxW > 100 ? powerMaxW : null,
+            VoltageOffsetMv: -offsetMHz)
+        : Goal switch
     {
         TuneGoal.Performance => new TuningSettings(CoreOffsetMHz: offsetMHz, PowerLimitW: powerMaxW > 0 ? powerMaxW : null),
         _ => new TuningSettings(CoreOffsetMHz: offsetMHz, MaxCoreClockMHz: MaxClockMHz),

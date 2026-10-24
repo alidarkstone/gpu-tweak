@@ -4,9 +4,9 @@ RivaTuner/Afterburner yeteneklerinde ama çok daha sade, kartına zarar vermemek
 
 ## Çalıştırma
 
-- `Tweakstone.exe`'yi istediğin klasöre koy ve çalıştır. Yönetici izni ister, çünkü NVIDIA'nın NVML API'si ayar yazmak için bunu şart koşuyor.
+- `Tweakstone.exe`'yi istediğin klasöre koy ve çalıştır. Yönetici izni ister, çünkü NVIDIA'nın NVML API'si ayar yazmak için bunu şart koşuyor. NVIDIA ve AMD (Radeon RX 6000 ve sonrası) kartları kendiliğinden tanınır.
 - Ayarlar, profiller ve logolar exe'nin yanındaki `GpuTweakData` klasöründe tutulur. Klasör yazılamazsa `%LOCALAPPDATA%\GpuTweak` kullanılır.
-- NVIDIA kartı olmayan bir bilgisayarda arayüzü denemek için: `Tweakstone.exe --demo`
+- Desteklenen kartı olmayan bir bilgisayarda arayüzü denemek için: `Tweakstone.exe --demo`
 - Overlay'i aç/kapat: **Ctrl + Shift + O**
 - **Simge alanı:** Pencerenin X tuşu programı kapatmaz, saatin yanındaki simge alanına gizler. Widget, kararlılık takibi ve uygulanan ayar çalışmaya devam eder. Simgenin üzerine gelince sıcaklık, güç ve aktif profil görünür. Tamamen kapatmak için simgeye sağ tıklayıp **Çıkış**.
 - **Windows ile başlat** (Profillerim kartı): Ekran kartı ayarları her yeniden başlatmada sıfırlanır. Bu seçenek açıkken program oturum açılınca saatin yanındaki simge alanında başlar ve "Stabil" + "Otomatik: açık" profili yeniden uygular. Yönetici izni gerektiği için Görev Zamanlayıcı'ya "Tweakstone" adlı bir görev eklenir. Son açılan exe kullanılır.
@@ -88,6 +88,18 @@ Otomatik ayar bitince, çipin stok boost hızında hatasız kaldırdığı en y�
 2. Çekirdek offset'i küçük adımlarla (+15 / +30 MHz) artır, her adımda Uygula → test et → Koru.
 3. Kart aynı frekansı daha düşük voltajla çalıştırır: daha düşük sıcaklık ve güç. Çökme olursa offset'i bir adım geri al.
 
+## AMD kartlar (v0.13.0)
+
+AMD'nin resmi ADLX arayüzü kullanılır (Adrenalin sürücüsüyle gelen `amdadlx64.dll`), yani Adrenalin'in "Manuel ayar" sayfasındaki ayarların aynısı.
+
+- **Undervolt** doğrudan voltaj düşürülerek yapılır: "Voltaj offset" kaydırıcısı (en fazla -200 mV). Max clock kilidi AMD'de yok.
+- **Çekirdek offset**, max frekansı stok değere göre kaydırır. RX 9000 (RDNA4) bunu sürücüde zaten offset olarak tutar, RX 6000/7000'de stok max frekansa eklenir.
+- **Güç limiti** stok değerin yüzdesi olarak gösterilir (100 = stok), çünkü sürücü yalnızca yüzde kabul eder.
+- **Otomatik ayar**: voltajı 10 mV adımlarla en fazla -150 mV'a kadar düşürür, hata çıkan yerden 30 mV güvenlik payı bırakır ve 5 dakika doğrular. "Verimli" hedefte max frekans boost'un %6 altına çekilir, "Performans" hedefinde güç limiti en yüksek değere alınır.
+- **Oyunda çökme** olursa voltaj 10 mV geri verilir. Bellek adımları AMD'nin küçük aralığına göre 25 MHz'dir.
+- **Varsayılana dön**, sürücünün kendi "fabrika ayarına sıfırla" komutunu kullanır. AMD sürücüsü ayarları yeniden başlatmadan sonra da hatırlar.
+- Ryzen işlemcinin dahili Radeon'u varsa, test ve ayar her zaman ayrı ekran kartında yapılır.
+
 ## Overlay logosu
 
 NVIDIA/AMD logoları ticari marka olduğu için exe içinde gelmez; widget'ta marka adı renkli yazı olarak görünür. Kendi logonu kullanmak için `GpuTweakData\logos\nvidia.png` (veya `amd.png`) dosyasını koy.
@@ -128,7 +140,7 @@ NVIDIA/AMD logoları ticari marka olduğu için exe içinde gelmez; widget'ta ma
 - [x] Widget'ta FPS: şu an / min / ort / maks (ETW Present olayları, enjeksiyonsuz). Bellek sıcaklığı (kart veriyorsa)
 - [ ] 1% low
 - [ ] Kaynaklı topluluk önerileri veritabanını doldurmak
-- [ ] AMD (ADLX)
+- [x] AMD (ADLX): telemetri, max frekans offset, voltaj undervolt, bellek, güç limiti (%), fan; otomatik ayar, doğrulama testi ve kararlılık takibi
 - [x] Windows ile başlatma
 - [x] Oyun kararlılığı takibi (Windows olay kayıtları) ve otomatik geri çekme, silikon skoru
 - [x] GPU sıcaklığı Min / Ort / Maks

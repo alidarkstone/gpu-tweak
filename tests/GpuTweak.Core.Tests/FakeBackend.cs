@@ -12,7 +12,7 @@ internal sealed class FakeBackend : IGpuBackend
 
     public GpuInfo Info { get; } = new(GpuVendor.Nvidia, "NVIDIA GeForce RTX 5080", "1.0", 16L << 30);
 
-    public TuningLimits Limits { get; } = new(-500, 1000, -1000, 3000, 150, 400, 360, 210, 3100, 30, 100, true);
+    public TuningLimits Limits { get; init; } = new(-500, 1000, -1000, 3000, 150, 400, 360, 210, 3100, 30, 100, true);
 
     public GpuTelemetry ReadTelemetry() => new(DateTimeOffset.Now, 60, 2700, 15000, 250, 360, 1, 2, 50, 90);
     public TuningSettings ReadCurrentSettings() => Current;

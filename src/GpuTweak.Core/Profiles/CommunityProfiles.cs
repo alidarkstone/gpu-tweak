@@ -24,6 +24,7 @@ public sealed record CommunityProfile(
     {
         CoreOffsetMHz = Settings.CoreOffsetMHz / 2,
         MemoryOffsetMHz = Settings.MemoryOffsetMHz / 2,
+        VoltageOffsetMv = Settings.VoltageOffsetMv / 2,
     };
 }
 
