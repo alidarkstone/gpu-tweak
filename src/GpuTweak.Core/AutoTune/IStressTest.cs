@@ -8,6 +8,11 @@ public enum StressPattern
     Transient,
     /// <summary>Alternates heavy and transient segments. Used for every tuning step.</summary>
     Mixed,
+    /// <summary>
+    /// Streams large buffers through video memory and checks every value. Bandwidth-bound; Score is GB/s, so a memory
+    /// overclock that makes the chips retry transfers shows up as a lower score before it shows up as errors.
+    /// </summary>
+    Memory,
 }
 
 /// <summary>Result of one stress run. <see cref="Score"/> is real work done per second, so clock stretching shows up as a lower score.</summary>

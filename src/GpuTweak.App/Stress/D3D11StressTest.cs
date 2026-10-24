@@ -56,6 +56,90 @@ public sealed class D3D11StressTest : IStressTest
         }
         """;
 
+    /// <summary>
+    /// Memory test: each pass reads every value of one 256 MB buffer, checks it against what the previous pass wrote
+    /// (a hash of its index and the pass number, so the expected value never needs the data itself), counts mismatches,
+    /// and writes the next pass's values to the other buffer. The written value does not depend on what was read, so a
+    /// single bad transfer is counted once and does not spread.
+    /// </summary>
+    private const string MemoryShader = """
+        cbuffer MemParams : register(b0) { uint Pass; uint Seed; uint Count4; uint Reserved; };
+        RWByteAddressBuffer Source : register(u0);
+        RWByteAddressBuffer Target : register(u1);
+        RWByteAddressBuffer Errors : register(u2);
+
+        uint Value(uint j, uint pass)
+        {
+            uint h = j * 0x9E3779B1u ^ (pass * 0x85EBCA77u + Seed);
+            h ^= h >> 15; h *= 0x2C1B3C6Du; h ^= h >> 12;
+            return h;
+        }
+
+        [numthreads(256, 1, 1)]
+        void main(uint3 id : SV_DispatchThreadID)
+        {
+            const uint threads = 16384u * 256u;
+            uint bad = 0;
+            [unroll] for (uint k = 0; k < 4; k++)
+            {
+                uint q = id.x + k * threads;   // neighbouring threads touch neighbouring 16-byte blocks
+                if (q < Count4)
+                {
+                    uint j = q * 4;
+                    uint4 got = Source.Load4(q * 16);
+                    uint4 want = uint4(Value(j, Pass), Value(j + 1, Pass), Value(j + 2, Pass), Value(j + 3, Pass));
+                    bad += (got.x != want.x ? 1u : 0u) + (got.y != want.y ? 1u : 0u) + (got.z != want.z ? 1u : 0u) + (got.w != want.w ? 1u : 0u);
+                    Target.Store4(q * 16, uint4(Value(j, Pass + 1), Value(j + 1, Pass + 1), Value(j + 2, Pass + 1), Value(j + 3, Pass + 1)));
+                }
+            }
+            if (bad != 0) { uint ignored; Errors.InterlockedAdd(0, bad, ignored); }
+        }
+        """;
+
+    /// <summary>Same hash as the memory shader, used to write the starting buffer.</summary>
+    private const string MemoryFillShader = """
+        cbuffer MemParams : register(b0) { uint Pass; uint Seed; uint Count4; uint Reserved; };
+        RWByteAddressBuffer Target : register(u1);
+
+        uint Value(uint j, uint pass)
+        {
+            uint h = j * 0x9E3779B1u ^ (pass * 0x85EBCA77u + Seed);
+            h ^= h >> 15; h *= 0x2C1B3C6Du; h ^= h >> 12;
+            return h;
+        }
+
+        [numthreads(256, 1, 1)]
+        void main(uint3 id : SV_DispatchThreadID)
+        {
+            const uint threads = 16384u * 256u;
+            [unroll] for (uint k = 0; k < 4; k++)
+            {
+                uint q = id.x + k * threads;
+                if (q < Count4)
+                {
+                    uint j = q * 4;
+                    Target.Store4(q * 16, uint4(Value(j, Pass), Value(j + 1, Pass), Value(j + 2, Pass), Value(j + 3, Pass)));
+                }
+            }
+        }
+        """;
+
+    private const uint MemoryBufferBytes = 256u << 20;
+    private const uint MemoryGroups = 16384;
+    private const int MemoryPassesPerBatch = 16;
+    private ID3D11ComputeShader? _memoryShader, _memoryFill;
+    private ID3D11Buffer? _memoryA, _memoryB, _memoryErrors, _memoryErrorsStaging, _memoryConstants;
+    private ID3D11UnorderedAccessView? _memoryViewA, _memoryViewB, _memoryErrorsView;
+    /// <summary>Pass number whose values the current source buffer holds.</summary>
+    private uint _memoryPass;
+    private bool _memorySourceIsA;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MemoryParams
+    {
+        public uint Pass, Seed, Count4, Reserved;
+    }
+
     /// <summary>Side of the animated preview image (pixels). One preview frame is drawn after every verified batch.</summary>
     public const int ImageSize = 384;
 
@@ -157,6 +241,7 @@ public sealed class D3D11StressTest : IStressTest
 
         try
         {
+            if (pattern == StressPattern.Memory) return RunMemory(duration, cancellationToken);
             while (watch.Elapsed < duration)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -197,6 +282,91 @@ public sealed class D3D11StressTest : IStressTest
         var score = busySeconds > 0 ? work / busySeconds / 1e9 : 0;
         return new StressResult(true, score, null);
     }, cancellationToken);
+
+    /// <summary>Bandwidth run; Score is GB/s actually moved (one read and one write of the buffer per pass).</summary>
+    private StressResult RunMemory(TimeSpan duration, CancellationToken cancellationToken)
+    {
+        EnsureMemoryResources();
+        var context = _context!;
+        var watch = Stopwatch.StartNew();
+        double bytes = 0, busySeconds = 0;
+        while (watch.Elapsed < duration)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var start = watch.Elapsed;
+            context.ClearUnorderedAccessView(_memoryErrorsView!, new Vortice.Mathematics.Int4(0, 0, 0, 0));
+            context.CSSetShader(_memoryShader);
+            context.CSSetUnorderedAccessView(2, _memoryErrorsView);
+            for (var p = 0; p < MemoryPassesPerBatch; p++)
+            {
+                var data = new MemoryParams { Pass = _memoryPass, Seed = Seed, Count4 = MemoryBufferBytes / 16 };
+                context.UpdateSubresource(in data, _memoryConstants!);
+                context.CSSetConstantBuffer(0, _memoryConstants);
+                context.CSSetUnorderedAccessView(0, _memorySourceIsA ? _memoryViewA : _memoryViewB);
+                context.CSSetUnorderedAccessView(1, _memorySourceIsA ? _memoryViewB : _memoryViewA);
+                context.Dispatch(MemoryGroups, 1, 1);
+                // Unbind before the buffers swap roles, so the next pass sees this one's writes.
+                context.CSSetUnorderedAccessView(0, null);
+                context.CSSetUnorderedAccessView(1, null);
+                _memoryPass++;
+                _memorySourceIsA = !_memorySourceIsA;
+            }
+            context.CopyResource(_memoryErrorsStaging!, _memoryErrors!);
+            var mapped = context.Map(_memoryErrorsStaging!, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+            uint errors;
+            try { errors = (uint)Marshal.ReadInt32(mapped.DataPointer); }
+            finally { context.Unmap(_memoryErrorsStaging!, 0); }
+            busySeconds += (watch.Elapsed - start).TotalSeconds;
+            bytes += 2.0 * MemoryBufferBytes * MemoryPassesPerBatch;
+
+            var values = (long)(MemoryBufferBytes / 4) * MemoryPassesPerBatch;
+            _checked += values;
+            _totalChecked += values;
+            _errors += errors;
+            if (errors > 0) _artifactsFound++;
+            Snapshot = new StressSnapshot(Snapshot?.Results ?? new uint[ThreadCount], _errorMask, _checked, _errors, StressPattern.Memory,
+                DrawPreview(), _artifactsFound, _totalChecked);
+            if (errors > 0) return StressResult.Fail(L.F("{0:N0} bellek hatası", errors));
+        }
+        return new StressResult(true, busySeconds > 0 ? bytes / busySeconds / 1e9 : 0, null);
+    }
+
+    private void EnsureMemoryResources()
+    {
+        if (_memoryShader is not null) return;
+        var device = _device!;
+        _memoryShader = device.CreateComputeShader(Compiler.Compile(MemoryShader, "main", "memory.hlsl", "cs_5_0", ShaderFlags.OptimizationLevel3, EffectFlags.None).Span);
+        _memoryFill = device.CreateComputeShader(Compiler.Compile(MemoryFillShader, "main", "memoryfill.hlsl", "cs_5_0", ShaderFlags.OptimizationLevel3, EffectFlags.None).Span);
+        (_memoryA, _memoryViewA) = RawBuffer(MemoryBufferBytes);
+        (_memoryB, _memoryViewB) = RawBuffer(MemoryBufferBytes);
+        (_memoryErrors, _memoryErrorsView) = RawBuffer(16);
+        _memoryErrorsStaging = device.CreateBuffer(new BufferDescription(16, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read, ResourceOptionFlags.None, 0));
+        _memoryConstants = device.CreateBuffer(new BufferDescription((uint)Marshal.SizeOf<MemoryParams>(), BindFlags.ConstantBuffer, ResourceUsage.Default));
+
+        // Fill buffer A with pass 0 values.
+        var context = _context!;
+        _memoryPass = 0;
+        _memorySourceIsA = true;
+        var data = new MemoryParams { Pass = 0, Seed = Seed, Count4 = MemoryBufferBytes / 16 };
+        context.UpdateSubresource(in data, _memoryConstants);
+        context.CSSetShader(_memoryFill);
+        context.CSSetConstantBuffer(0, _memoryConstants);
+        context.CSSetUnorderedAccessView(1, _memoryViewA);
+        context.Dispatch(MemoryGroups, 1, 1);
+        context.CSSetUnorderedAccessView(1, null);
+
+        (ID3D11Buffer, ID3D11UnorderedAccessView) RawBuffer(uint size)
+        {
+            var buffer = device.CreateBuffer(new BufferDescription(size, BindFlags.UnorderedAccess, ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.BufferAllowRawViews, 0));
+            var view = device.CreateUnorderedAccessView(buffer, new UnorderedAccessViewDescription
+            {
+                ViewDimension = UnorderedAccessViewDimension.Buffer,
+                Format = Format.R32_Typeless,
+                Buffer = new BufferUnorderedAccessView { FirstElement = 0, NumElements = size / 4, Flags = BufferUnorderedAccessViewFlags.Raw },
+            });
+            return (buffer, view);
+        }
+    }
 
     private bool Verify(int passes, out string reason)
     {
@@ -407,6 +577,16 @@ public sealed class D3D11StressTest : IStressTest
 
     private void Release()
     {
+        _memoryViewA?.Dispose(); _memoryViewA = null;
+        _memoryViewB?.Dispose(); _memoryViewB = null;
+        _memoryErrorsView?.Dispose(); _memoryErrorsView = null;
+        _memoryA?.Dispose(); _memoryA = null;
+        _memoryB?.Dispose(); _memoryB = null;
+        _memoryErrors?.Dispose(); _memoryErrors = null;
+        _memoryErrorsStaging?.Dispose(); _memoryErrorsStaging = null;
+        _memoryConstants?.Dispose(); _memoryConstants = null;
+        _memoryShader?.Dispose(); _memoryShader = null;
+        _memoryFill?.Dispose(); _memoryFill = null;
         _imageView?.Dispose(); _imageView = null;
         _visualConstants?.Dispose(); _visualConstants = null;
         _imageStaging?.Dispose(); _imageStaging = null;

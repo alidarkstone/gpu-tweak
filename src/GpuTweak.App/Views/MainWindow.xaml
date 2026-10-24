@@ -173,10 +173,11 @@
                                     </StackPanel>
                                 </Grid>
                                 <Border CornerRadius="9" Background="{StaticResource FillBrush}" Padding="2" Margin="0,12,0,0" IsEnabled="{Binding CanChooseGoal}">
-                                    <UniformGrid Columns="3">
+                                    <UniformGrid Columns="4">
                                         <RadioButton Style="{StaticResource Segment}" local:Loc.Content="UV tatlı nokta" IsChecked="{Binding IsGoalCool, Mode=OneWay}" Command="{Binding SetGoalCommand}" CommandParameter="Cool"/>
                                         <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Performans" IsChecked="{Binding IsGoalPerformance, Mode=OneWay}" Command="{Binding SetGoalCommand}" CommandParameter="Performance"/>
                                         <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Verimli" IsChecked="{Binding IsGoalEfficient, Mode=OneWay}" Command="{Binding SetGoalCommand}" CommandParameter="Efficient"/>
+                                        <RadioButton Style="{StaticResource Segment}" local:Loc.Content="Bellek OC" IsChecked="{Binding IsGoalMemory, Mode=OneWay}" Command="{Binding SetGoalCommand}" CommandParameter="Memory"/>
                                     </UniformGrid>
                                 </Border>
                                 <TextBlock Style="{StaticResource Caption}" Text="{Binding GoalDescription}" Margin="0,8,0,0"/>

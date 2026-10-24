@@ -12,6 +12,8 @@ public enum TuneGoal
     Performance,
     /// <summary>Clock capped a little below stock boost plus undervolt: much less power and heat for a small FPS cost.</summary>
     Efficient,
+    /// <summary>Memory overclock on top of the current core settings, judged by verified bandwidth (<see cref="MemoryTuner"/>).</summary>
+    Memory,
 }
 
 /// <summary>

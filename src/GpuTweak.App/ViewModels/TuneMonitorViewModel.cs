@@ -127,7 +127,13 @@ public sealed class TuneMonitorViewModel : ObservableObject
         _drawn = snapshot;
         HasMap = true;
 
-        PatternText = snapshot.Pattern == StressPattern.Heavy ? L.T("Ağır yük") : snapshot.Pattern == StressPattern.Transient ? L.T("Dalgalı yük") : L.T("Karışık yük");
+        PatternText = snapshot.Pattern switch
+        {
+            StressPattern.Heavy => L.T("Ağır yük"),
+            StressPattern.Transient => L.T("Dalgalı yük"),
+            StressPattern.Memory => L.T("Bellek yükü"),
+            _ => L.T("Karışık yük"),
+        };
         HasErrors = snapshot.Errors > 0;
         ErrorsText = $"{snapshot.TotalChecked:N0}";
 

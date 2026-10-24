@@ -41,6 +41,17 @@ RivaTuner/Afterburner yeteneklerinde ama çok daha sade, kartına zarar vermemek
 
 Test sırasında bilgisayar kilitlenirse bir sonraki açılışta program stok ayarlarla başlar. "Kaldığı yerden devam" denince kilitlenen değer kararsız sayılır.
 
+## Bellek OC
+
+Otomatik ayardaki **Bellek OC** hedefi, şu anki çekirdek ayarına dokunmadan bellek hızını artırır (yaklaşık 13 dakika):
+
+1. 2 × 256 MB'lık iki tampon sürekli okunup yazılır. Her değer, sırası ve geçiş numarasından hesaplanan beklenen değerle kontrol edilir. Bu sayede bellek hatası hemen yakalanır. Ölçülen hız GB/s olarak raporlanır.
+2. Bellek offset'i, sürücünün izin verdiği aralığın onda biri kadar adımlarla artırılır.
+3. İlk hatada, sürücü sıfırlanmasında ya da bant genişliği düşünce durur. GDDR7 hatalı aktarımları tekrar ettiği için kararsızlık önce hız kaybı olarak görünür. Bant genişliği iki adım üst üste artmazsa da durur.
+4. En hızlı ölçülen değerden bir adım geri gelinir, 3 dk bellek + 2 dk karışık yükle doğrulanır. Sonuç aktif profile eklenir.
+
+Not: Afterburner'daki bellek değeri ile NVML'in birimi farklı olabilir. Karşılaştırmak için sonuçtaki bant genişliği artış yüzdesine bak.
+
 ## Doğrulama testi
 
 **Doğrulama testi** düğmesi, şu an karttaki ayarları yaklaşık 32 dakika test eder (FurMark gibi), ama her hesabın sonucunu da kontrol eder. Üç bölümü var:
@@ -119,7 +130,7 @@ NVIDIA/AMD logoları ticari marka olduğu için exe içinde gelmez; widget'ta ma
 - [x] GPU sıcaklığı Min / Ort / Maks
 - [x] Dil seçimi (Türkçe / English), üst köşedeki TR | EN düğmesi
 - [x] Voltaj eğrisinin alt noktalarını da sınayan doğrulama testi
-- [ ] Güvenli bellek overclock'u (bant genişliği ölçümüyle)
+- [x] Güvenli bellek overclock'u (bant genişliği ölçümüyle)
 - [ ] DX12 ışın izleme (DXR) stres testi
 - [ ] Fan eğrisi, sistem tepsisi
 - [ ] (Deneysel) V/F eğrisi editörü

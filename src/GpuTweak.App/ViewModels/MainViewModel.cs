@@ -280,11 +280,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool IsGoalCool => Goal == TuneGoal.Cool;
     public bool IsGoalPerformance => Goal == TuneGoal.Performance;
     public bool IsGoalEfficient => Goal == TuneGoal.Efficient;
+    public bool IsGoalMemory => Goal == TuneGoal.Memory;
     public bool CanChooseGoal => !IsTuning && PendingJournal is null;
     public string GoalDescription => Goal switch
     {
         TuneGoal.Performance => L.T("Overclock: saat kilidi yok, güç limiti kartın izin verdiği en yüksek değerde. Çekirdek hızı hatasız kaldığı yere kadar artırılır. FPS biraz artar, kart biraz daha ısınır."),
         TuneGoal.Efficient => L.T("Hız stok boost'un %6 altında kilitlenir ve voltaj düşürülür. FPS biraz düşer, güç ve ısı belirgin azalır."),
+        TuneGoal.Memory => L.T("Şu anki çekirdek ayarı korunur, bellek hızı adım adım artırılır. Her değer kontrol edilir; hata çıkınca ya da bant genişliği artmayı bırakınca durur ve bir adım geri gelir. Yaklaşık 13 dakika sürer."),
         _ => L.T("Undervolt: hız stokta kalır, voltaj düşürülür. FPS aynı kalır; kart daha serin ve sessiz çalışır."),
     };
     public ICommand SetGoalCommand => new RelayCommand(p =>
@@ -292,7 +294,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (!CanChooseGoal || !Enum.TryParse<TuneGoal>(p as string, out var goal) || goal == Goal) return;
         _settings = _settings with { TuneGoal = goal };
         _settingsStore.Save(_settings);
-        foreach (var name in new[] { nameof(Goal), nameof(IsGoalCool), nameof(IsGoalPerformance), nameof(IsGoalEfficient), nameof(GoalDescription) })
+        foreach (var name in new[] { nameof(Goal), nameof(IsGoalCool), nameof(IsGoalPerformance), nameof(IsGoalEfficient), nameof(IsGoalMemory), nameof(GoalDescription) })
             OnPropertyChanged(name);
     });
 
@@ -396,7 +398,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
     private bool _isStressTest;
-    public string MonitorTitle => IsTuning && _isStressTest ? L.T("Doğrulama testi çalışıyor") : IsTuning ? L.T("Otomatik ayar çalışıyor") : TuneResult is { Success: true } ? L.T("Otomatik ayar bitti") : L.T("Otomatik ayar");
+    public string MonitorTitle => IsTuning && _isMemoryTune ? L.T("Bellek ayarı çalışıyor") : IsTuning && _isStressTest ? L.T("Doğrulama testi çalışıyor") : IsTuning ? L.T("Otomatik ayar çalışıyor") : TuneResult is { Success: true } ? L.T("Otomatik ayar bitti") : L.T("Otomatik ayar");
 
     public ICommand StartTuneCommand { get; }
     public ICommand ResumeTuneCommand { get; }
@@ -623,6 +625,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private async Task StartTuneAsync(bool resume)
     {
+        if (!resume && Goal == TuneGoal.Memory)
+        {
+            await StartMemoryTuneAsync();
+            return;
+        }
         var journal = resume ? PendingJournal : null;
         var goal = journal?.Goal ?? Goal;
         var profileName = ProfileNameFor(goal);
@@ -692,6 +699,60 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             SetActive(TuningSettings.Stock, null);
             LoadIntoEditor(TuningSettings.Stock);
             TuneMessage = result.Message;
+        }
+    }
+
+    private bool _isMemoryTune;
+
+    private async Task StartMemoryTuneAsync()
+    {
+        var original = _active;
+        _isMemoryTune = true;
+        TuneResult = null;
+        OnPropertyChanged(nameof(TuneSummary));
+        TuneMessage = null;
+        IsTuning = true;
+        _tuneCts = new CancellationTokenSource();
+        _crashGuard.MarkCustomApplied("Bellek ayar testi");
+        var progress = new Progress<TuneProgress>(p => { TuneProgress = p.Fraction; TuneMessage = p.Message; });
+
+        MemoryTuneResult result;
+        try
+        {
+            using var stress = new D3D11StressTest();
+            Monitor.Start(stress);
+            IsMonitorVisible = true;
+            var tuner = new MemoryTuner(_backend, stress, progress: progress, steps: new Progress<TuneStep>(Monitor.AddStep));
+            result = await Task.Run(() => tuner.RunAsync(original, _tuneCts.Token));
+        }
+        catch (Exception e)
+        {
+            try { _backend.Apply(original); } catch (GpuBackendException) { }
+            result = MemoryTuneResult.Failed(e.Message);
+        }
+        finally
+        {
+            Monitor.Stop();
+            IsTuning = false;
+            _isMemoryTune = false;
+            OnPropertyChanged(nameof(MonitorTitle));
+            _tuneCts.Dispose();
+            _tuneCts = null;
+        }
+        // Driver resets during the search are expected, not a gaming problem.
+        _stability.SkipToNow();
+        if (original.IsStock) _crashGuard.MarkStock();
+        else _crashGuard.MarkCustomApplied(_activeProfileName);
+
+        TuneMessage = result.Message;
+        if (result is { Success: true, Settings: { } tuned } && tuned != original)
+        {
+            // Same as a step-down: the active profile (and any other holding the old settings) gets the memory offset too.
+            if (_activeProfileName is not null && !original.IsStock) StepDown(new Adjustment(original, tuned, L.F("bellek +{0} MHz", tuned.MemoryOffsetMHz)));
+            else ApplyDirect(tuned, null);
+            LoadIntoEditor(tuned);
+            Status = L.F("Bellek ayarı uygulandı: +{0} MHz. Oyunlarda doku bozulması görürsen \"Artifact gördüm\"e bas.", tuned.MemoryOffsetMHz);
+            StatusIsWarning = false;
         }
     }
 
