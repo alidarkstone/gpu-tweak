@@ -45,6 +45,8 @@ public sealed class StabilityTracker
 
     /// <summary>When off, incidents are only logged and the suggested step-down is returned without being tracked.</summary>
     public bool AutoAdjust { get; set; } = true;
+    /// <summary>How far one step lowers the memory offset; AMD cards have a much smaller range.</summary>
+    public int MemoryStepMHz { get; init; } = StabilityAdvisor.MemoryStepMHz;
 
     /// <summary>Ignores everything logged until now (used after an auto-tune run, whose crashes are expected).</summary>
     public void SkipToNow()
@@ -186,7 +188,7 @@ public sealed class StabilityTracker
         }
 
         _state = _state with { CleanGameTime = TimeSpan.Zero };
-        var adjustment = StabilityAdvisor.StepDown(_state.TrackedSettings, incident.Kind);
+        var adjustment = StabilityAdvisor.StepDown(_state.TrackedSettings, incident.Kind, MemoryStepMHz);
         if (adjustment is not null && AutoAdjust)
             _state = _state with { TrackedSettings = adjustment.Settings, SettingsSince = _now(), LastAdjustment = adjustment };
         if (save) Save();

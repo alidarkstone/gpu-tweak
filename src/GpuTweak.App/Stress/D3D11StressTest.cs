@@ -20,8 +20,10 @@ namespace GpuTweak.App.Stress;
 /// <param name="ArtifactsFound">Batches with wrong results since the stress test was created (across all tuning steps).</param>
 public sealed record StressSnapshot(uint[] Results, byte[] ErrorMask, long Checked, long Errors, StressPattern Pattern, int[]? Image, int ArtifactsFound, long TotalChecked);
 
-public sealed class D3D11StressTest : IStressTest
+public sealed class D3D11StressTest(uint vendorId = D3D11StressTest.NvidiaVendorId) : IStressTest
 {
+    public const uint NvidiaVendorId = 0x10DE, AmdVendorId = 0x1002;
+
     /// <summary>Results are 1024 × 1024, one pixel per GPU thread.</summary>
     public const int MapSize = 1024;
     private const uint ThreadsPerGroup = 256;
@@ -503,8 +505,16 @@ public sealed class D3D11StressTest : IStressTest
         IDXGIAdapter1? chosen = null;
         for (uint i = 0; factory.EnumAdapters1(i, out var adapter).Success; i++)
         {
-            // Prefer the NVIDIA card (vendor 0x10DE) so an iGPU is never the one being tested.
-            if (adapter.Description1.VendorId == 0x10DE && chosen is null) chosen = adapter;
+            // Prefer the card being tuned so an iGPU is never the one being tested. A Ryzen iGPU is also AMD,
+            // so for AMD the adapter with the most dedicated memory wins.
+            var description = adapter.Description1;
+            var better = description.VendorId == vendorId && (chosen is null ||
+                vendorId != NvidiaVendorId && description.DedicatedVideoMemory > chosen.Description1.DedicatedVideoMemory);
+            if (better)
+            {
+                chosen?.Dispose();
+                chosen = adapter;
+            }
             else adapter.Dispose();
         }
 

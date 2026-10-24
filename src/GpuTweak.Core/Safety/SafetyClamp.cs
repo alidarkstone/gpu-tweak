@@ -25,12 +25,14 @@ public static class SafetyClamp
         var core = Fit(requested.CoreOffsetMHz, limits.CoreOffsetMinMHz, limits.CoreOffsetMaxMHz, L.T("Çekirdek offset"), " MHz");
         var memory = Fit(requested.MemoryOffsetMHz, limits.MemoryOffsetMinMHz, limits.MemoryOffsetMaxMHz, L.T("Bellek offset"), " MHz");
 
-        int? power = requested.PowerLimitW is { } p ? Fit(p, limits.PowerMinW, limits.PowerMaxW, L.T("Güç limiti"), " W") : null;
+        int? power = requested.PowerLimitW is { } p ? Fit(p, limits.PowerMinW, limits.PowerMaxW, L.T("Güç limiti"), limits.PowerInPercent ? "%" : " W") : null;
         if (power == limits.PowerDefaultW) power = null;
 
-        int? maxClock = requested.MaxCoreClockMHz is { } c
+        int? maxClock = requested.MaxCoreClockMHz is { } c && limits.SupportsClockCap
             ? Fit(c, limits.CoreClockMinMHz, limits.CoreClockMaxMHz, L.T("Max clock"), " MHz")
             : null;
+        // Never above 0: the voltage is only ever lowered.
+        var voltage = Fit(requested.VoltageOffsetMv, limits.VoltageOffsetMinMv, 0, L.T("Voltaj offset"), " mV");
 
         int? fan = null;
         if (requested.FanPercent is { } f)
@@ -41,6 +43,6 @@ public static class SafetyClamp
                 notes.Add(L.T("Bu kart fan kontrolünü desteklemiyor; fan otomatikte bırakıldı"));
         }
 
-        return new ClampResult(new TuningSettings(core, memory, power, maxClock, fan), notes);
+        return new ClampResult(new TuningSettings(core, memory, power, maxClock, fan, voltage), notes);
     }
 }

@@ -21,6 +21,8 @@ public sealed record StressTestOptions
     public TimeSpan SweepSegment { get; init; } = TimeSpan.FromSeconds(90);
     /// <summary>On a calculation error or driver reset the core offset is lowered by this much and the segment repeated.</summary>
     public int StepDownMHz { get; init; } = 30;
+    /// <summary>AMD: on an error the undervolt is reduced by this much instead.</summary>
+    public int StepDownMv { get; init; } = 10;
     public int MaxStepDowns { get; init; } = 4;
     public double AbortTemperatureC { get; init; } = 85;
     public TimeSpan SampleInterval { get; init; } = TimeSpan.FromMilliseconds(500);
@@ -174,6 +176,16 @@ public sealed class StressTestRunner(IGpuBackend backend, IStressTest stress, St
                 }
 
                 // Too little voltage for this offset somewhere on the curve: give it a bit more and try the same part again.
+                if (stepDowns < _options.MaxStepDowns && current.VoltageOffsetMv < 0)
+                {
+                    stepDowns++;
+                    var raised = Math.Min(0, current.VoltageOffsetMv + _options.StepDownMv);
+                    steps?.Report(new TuneStep(L.F("Voltaj {0} → {1} mV", current.VoltageOffsetMv, raised), true,
+                        L.T("hata sonrası bir adım düşürüldü"), 0, 0, 0));
+                    current = current with { VoltageOffsetMv = raised };
+                    backend.Apply(current);
+                    continue;
+                }
                 if (stepDowns < _options.MaxStepDowns && current.CoreOffsetMHz > 0)
                 {
                     stepDowns++;

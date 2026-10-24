@@ -32,8 +32,8 @@ public partial class App : Application
         if (backend is null)
         {
             var answer = MessageBox.Show(
-                L.T("Desteklenen bir NVIDIA ekran kartı bulunamadı (NVML yüklenemedi).\n\n") +
-                L.T("AMD desteği bir sonraki sürümde geliyor. Arayüzü denemek için demo modunda açılsın mı?"),
+                L.T("Desteklenen bir NVIDIA ya da AMD ekran kartı bulunamadı. Ekran kartı sürücüsünün kurulu olduğundan emin ol.\n\n") +
+                L.T("Arayüzü denemek için demo modunda açılsın mı?"),
                 "Tweakstone", MessageBoxButton.YesNo, MessageBoxImage.Information);
             if (answer != MessageBoxResult.Yes)
             {

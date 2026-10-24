@@ -95,13 +95,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         PendingJournal = TuneJournal.Load(dataDirectory);
         if (PendingJournal is not null && crash is not null && PendingJournal.TestingOffsetMHz is { } crashedAt)
-            TuneMessage = L.F("Otomatik ayar testi +{0} MHz'de bilgisayarı kilitledi. Bu değer kararsız sayıldı; kaldığı yerden devam edebilirsin.", crashedAt);
+            TuneMessage = PendingJournal.VoltageMode
+                ? L.F("Otomatik ayar testi {0} değerinde bilgisayarı kilitledi. Bu değer kararsız sayıldı; kaldığı yerden devam edebilirsin.", PendingJournal.Label(crashedAt))
+                : L.F("Otomatik ayar testi +{0} MHz'de bilgisayarı kilitledi. Bu değer kararsız sayıldı; kaldığı yerden devam edebilirsin.", crashedAt);
         else if (PendingJournal is not null)
             TuneMessage = L.T("Önceki otomatik ayar testi yarıda kaldı. Kaldığı yerden devam edebilirsin.");
 
         // Look at what happened since the last run before anything is applied: a crash or driver reset with the
         // previous settings steps them (and the profile that holds them) down before it is auto-applied again.
-        _stability = new StabilityTracker(dataDirectory, new WindowsIncidentSource()) { AutoAdjust = _settings.AutoFixStability };
+        _stability = new StabilityTracker(dataDirectory, new WindowsIncidentSource())
+        {
+            AutoAdjust = _settings.AutoFixStability,
+            MemoryStepMHz = Limits.MemoryOffsetMaxMHz >= 1000 ? StabilityAdvisor.MemoryStepMHz : StabilityAdvisor.SmallMemoryStepMHz,
+        };
         if (PendingJournal is not null) _stability.SkipToNow(); // crashes during the auto-tune test are expected
         else HandleStabilityUpdates(_stability.Check());
         _stabilityTimer = new DispatcherTimer(TimeSpan.FromSeconds(30), DispatcherPriority.Background, (_, _) => CheckStability(), _dispatcher);
@@ -174,13 +180,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public double LoadLevel { get => _loadLevel; private set => Set(ref _loadLevel, value); }
 
     // ---- Editor ----
-    private int _coreOffset, _memoryOffset, _powerLimit, _maxClock, _fanPercent;
+    private int _coreOffset, _memoryOffset, _powerLimit, _maxClock, _fanPercent, _voltageOffset;
     private bool _useClockCap, _manualFan;
     // Values can be typed in, so they are kept inside the card's limits here too (the backend clamps again on apply).
     public int CoreOffset { get => _coreOffset; set => SetClamped(ref _coreOffset, value, Limits.CoreOffsetMinMHz, Limits.CoreOffsetMaxMHz); }
     public int MemoryOffset { get => _memoryOffset; set => SetClamped(ref _memoryOffset, value, Limits.MemoryOffsetMinMHz, Limits.MemoryOffsetMaxMHz); }
     public int PowerLimit { get => _powerLimit; set { if (SetClamped(ref _powerLimit, value, Limits.PowerMinW, Limits.PowerMaxW)) OnPropertyChanged(nameof(PowerPercentText)); } }
-    public string PowerPercentText => Limits.PowerDefaultW > 0 ? $"%{100.0 * PowerLimit / Limits.PowerDefaultW:0}" : "";
+    public string PowerPercentText => Limits.PowerDefaultW > 0 && !Limits.PowerInPercent ? $"%{100.0 * PowerLimit / Limits.PowerDefaultW:0}" : "";
+    /// <summary>The power limit box shows watts on NVIDIA and percent of stock on AMD.</summary>
+    public string PowerUnitText => Limits.PowerInPercent ? " %" : " W  ";
+    /// <summary>AMD undervolt, in mV below stock (0 or negative).</summary>
+    public int VoltageOffset { get => _voltageOffset; set => SetClamped(ref _voltageOffset, value, Limits.VoltageOffsetMinMv, 0); }
+    public bool SupportsVoltageOffset => Limits.UndervoltsByVoltage;
+    public bool SupportsClockCap => Limits.SupportsClockCap;
+    /// <summary>AMD memory ranges are a few hundred MHz, NVIDIA's several thousand.</summary>
+    public int MemoryTick => Limits.MemoryOffsetMaxMHz >= 1000 ? 50 : 5;
     public bool UseClockCap { get => _useClockCap; set => Set(ref _useClockCap, value); }
     public int MaxClock { get => _maxClock; set => SetClamped(ref _maxClock, value, Limits.CoreClockMinMHz, Limits.CoreClockMaxMHz); }
     public bool ManualFan { get => _manualFan; set => Set(ref _manualFan, value); }
@@ -195,6 +209,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         return false;
     }
     public bool SupportsFanControl => Limits.SupportsFanControl;
+    private uint StressVendorId => Info.Vendor == GpuVendor.Amd ? D3D11StressTest.AmdVendorId : D3D11StressTest.NvidiaVendorId;
     public bool SupportsOffsets => Limits.CoreOffsetMaxMHz > Limits.CoreOffsetMinMHz;
 
     // ---- Confirmation ----
@@ -294,6 +309,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool CanChooseGoal => !IsTuning && PendingJournal is null;
     public string GoalDescription => Goal switch
     {
+        TuneGoal.Performance when Limits.UndervoltsByVoltage => L.T("Overclock: güç limiti kartın izin verdiği en yüksek değerde, voltaj hatasız kaldığı yere kadar düşürülür. Kart aynı güçle daha yüksek hızda çalışır: FPS biraz artar."),
         TuneGoal.Performance => L.T("Overclock: saat kilidi yok, güç limiti kartın izin verdiği en yüksek değerde. Çekirdek hızı hatasız kaldığı yere kadar artırılır. FPS biraz artar, kart biraz daha ısınır."),
         TuneGoal.Efficient => L.T("Hız stok boost'un %6 altında kilitlenir ve voltaj düşürülür. FPS biraz düşer, güç ve ısı belirgin azalır."),
         TuneGoal.Memory => L.T("Şu anki çekirdek ayarı korunur, bellek hızı adım adım artırılır. Her değer kontrol edilir; hata çıkınca ya da bant genişliği artmayı bırakınca durur ve bir adım geri gelir. Yaklaşık 13 dakika sürer."),
@@ -433,15 +449,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CoreOffset,
         MemoryOffset,
         PowerLimit == Limits.PowerDefaultW ? null : PowerLimit,
-        UseClockCap ? MaxClock : null,
-        ManualFan && SupportsFanControl ? FanPercent : null);
+        UseClockCap && SupportsClockCap ? MaxClock : null,
+        ManualFan && SupportsFanControl ? FanPercent : null,
+        SupportsVoltageOffset ? VoltageOffset : 0);
 
     private void LoadIntoEditor(TuningSettings s)
     {
         CoreOffset = s.CoreOffsetMHz;
         MemoryOffset = s.MemoryOffsetMHz;
         PowerLimit = s.PowerLimitW ?? Limits.PowerDefaultW;
-        UseClockCap = s.MaxCoreClockMHz is not null;
+        UseClockCap = s.MaxCoreClockMHz is not null && SupportsClockCap;
+        VoltageOffset = s.VoltageOffsetMv;
         MaxClock = s.MaxCoreClockMHz ?? Limits.CoreClockMaxMHz;
         ManualFan = s.FanPercent is not null;
         FanPercent = s.FanPercent ?? Math.Max(Limits.FanMinPercent, 50);
@@ -664,7 +682,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         TuneResult result;
         try
         {
-            using var stress = new D3D11StressTest();
+            using var stress = new D3D11StressTest(StressVendorId);
             Monitor.Start(stress);
             IsMonitorVisible = true;
             var tuner = new AutoTuner(_backend, stress, _dataDirectory, progress: progress, steps: steps);
@@ -690,7 +708,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         // The silicon score is the undervolt headroom at the stock clock, so only the "cool" goal measures it.
         if (result is { Success: true, Settings: { } tuned } && goal == TuneGoal.Cool)
         {
-            _settings = _settings with { Silicon = new SiliconResult(Info.Name, result.HighestPassedOffsetMHz, result.ReachedSearchLimit, tuned.CoreOffsetMHz, DateTimeOffset.Now) };
+            var voltageMode = tuned.VoltageOffsetMv < 0;
+            _settings = _settings with { Silicon = new SiliconResult(Info.Name, result.HighestPassedOffsetMHz, result.ReachedSearchLimit,
+                voltageMode ? -tuned.VoltageOffsetMv : tuned.CoreOffsetMHz, DateTimeOffset.Now, voltageMode) };
             _settingsStore.Save(_settings);
         }
         if (result is { Success: true, Settings: { } settings })
@@ -731,7 +751,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         MemoryTuneResult result;
         try
         {
-            using var stress = new D3D11StressTest();
+            using var stress = new D3D11StressTest(StressVendorId);
             Monitor.Start(stress);
             IsMonitorVisible = true;
             var tuner = new MemoryTuner(_backend, stress, progress: progress, steps: new Progress<TuneStep>(Monitor.AddStep));
@@ -869,7 +889,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (undo.From != undo.Settings)
         {
             StepDown(undo);
-            Status = L.F("Önceki ayara dönüldü: çekirdek +{0} MHz, bellek +{1} MHz. Bu sorun ayarlara sayılmayacak.", undo.Settings.CoreOffsetMHz, undo.Settings.MemoryOffsetMHz);
+            Status = undo.Settings.VoltageOffsetMv != 0
+                ? L.F("Önceki ayara dönüldü: voltaj {0} mV, bellek +{1} MHz. Bu sorun ayarlara sayılmayacak.", undo.Settings.VoltageOffsetMv, undo.Settings.MemoryOffsetMHz)
+                : L.F("Önceki ayara dönüldü: çekirdek +{0} MHz, bellek +{1} MHz. Bu sorun ayarlara sayılmayacak.", undo.Settings.CoreOffsetMHz, undo.Settings.MemoryOffsetMHz);
         }
         else
         {
@@ -936,9 +958,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
         HasSilicon = true;
+        var tracked = _stability.State.TrackedSettings;
+        if (si.Millivolts)
+        {
+            SiliconHeadroom = $"-{si.HighestPassedOffsetMHz} mV";
+            SiliconDaily = $"-{si.AppliedOffsetMHz} mV";
+            SiliconGame = !tracked.IsStock && tracked.VoltageOffsetMv < 0 && _stability.State.Sessions.Count > 0 ? $"{tracked.VoltageOffsetMv} mV" : "–";
+            SiliconText = si.ReachedSearchLimit
+                ? L.F("Bu çip testin üst sınırına kadar hatasız çalıştı; gerçek payı daha da yüksek olabilir. Ölçüm: {0:dd.MM.yyyy}.", si.TestedAt.LocalDateTime)
+                : L.F("Bu çip, stok hızında voltaj -{0} mV düşürülene kadar hatasız çalıştı; daha aşağıda hata verdi. Günlük kullanımda {1} mV güvenlik payı bırakıldı. Ölçüm: {2:dd.MM.yyyy}.", si.HighestPassedOffsetMHz, si.HighestPassedOffsetMHz - si.AppliedOffsetMHz, si.TestedAt.LocalDateTime);
+            return;
+        }
         SiliconHeadroom = $"+{si.HighestPassedOffsetMHz} MHz";
         SiliconDaily = $"+{si.AppliedOffsetMHz} MHz";
-        var tracked = _stability.State.TrackedSettings;
         SiliconGame = !tracked.IsStock && tracked.MaxCoreClockMHz is not null && _stability.State.Sessions.Count > 0 ? $"+{tracked.CoreOffsetMHz} MHz" : "–";
         SiliconText = si.ReachedSearchLimit
             ? L.F("Bu çip testin üst sınırına kadar hatasız çalıştı; gerçek payı daha da yüksek olabilir. Ölçüm: {0:dd.MM.yyyy}.", si.TestedAt.LocalDateTime)
@@ -963,7 +995,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         StressTestResult result;
         try
         {
-            using var stress = new D3D11StressTest();
+            using var stress = new D3D11StressTest(StressVendorId);
             Monitor.Start(stress);
             IsMonitorVisible = true;
             var runner = new StressTestRunner(_backend, stress, progress: progress, steps: new Progress<TuneStep>(Monitor.AddStep));
@@ -990,7 +1022,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (result.Passed && result.StepDowns > 0 && result.FinalSettings is { } final)
         {
             // Some point of the curve needed more voltage: keep the lowered offset, in the profile too.
-            var description = L.F("çekirdek +{0} → +{1} MHz", settings.CoreOffsetMHz, final.CoreOffsetMHz);
+            var description = final.VoltageOffsetMv != settings.VoltageOffsetMv
+                ? L.F("voltaj {0} → {1} mV", settings.VoltageOffsetMv, final.VoltageOffsetMv)
+                : L.F("çekirdek +{0} → +{1} MHz", settings.CoreOffsetMHz, final.CoreOffsetMHz);
             StepDown(new Adjustment(settings, final, description));
             TuneMessage = L.F("Doğrulama testi geçti, ama önce hata buldu; ayar bir miktar düşürüldü: {0}.", description) + " " + summary;
             Status = L.F("Ayar daha güvenli hale getirildi: {0}.", description);

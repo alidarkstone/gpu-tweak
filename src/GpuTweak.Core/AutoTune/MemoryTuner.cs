@@ -43,9 +43,12 @@ public sealed class MemoryTuner(IGpuBackend backend, IStressTest stress, MemoryT
 {
     private readonly MemoryTunerOptions _options = options ?? new MemoryTunerOptions();
 
-    /// <summary>Step size: an even split of the driver's range, in 50 MHz units.</summary>
-    public static int StepFor(TuningLimits limits, int steps) =>
-        Math.Max(50, (int)Math.Round(limits.MemoryOffsetMaxMHz / (double)Math.Max(1, steps) / 50) * 50);
+    /// <summary>Step size: an even split of the driver's range, in 50 MHz units (5 MHz for the small AMD ranges).</summary>
+    public static int StepFor(TuningLimits limits, int steps)
+    {
+        var unit = limits.MemoryOffsetMaxMHz >= 1000 ? 50 : 5;
+        return Math.Max(unit, (int)Math.Round(limits.MemoryOffsetMaxMHz / (double)Math.Max(1, steps) / unit) * unit);
+    }
 
     public async Task<MemoryTuneResult> RunAsync(TuningSettings current, CancellationToken ct)
     {

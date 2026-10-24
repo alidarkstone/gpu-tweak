@@ -20,6 +20,10 @@ public sealed record TunerOptions
     /// <summary>For <see cref="TuneGoal.Efficient"/>: the clock cap as a fraction of the stock boost clock.</summary>
     public double EfficientClockRatio { get; init; } = 0.94;
     public double AbortTemperatureC { get; init; } = 85;
+    /// <summary>AMD (voltage undervolt): millivolts per step, the distance kept from the deepest passing value, and how deep to search.</summary>
+    public int VoltageStepMv { get; init; } = 10;
+    public int VoltageSafetyMarginMv { get; init; } = 30;
+    public int MaxSearchUndervoltMv { get; init; } = 150;
     public TimeSpan SampleInterval { get; init; } = TimeSpan.FromMilliseconds(500);
 }
 
@@ -54,6 +58,8 @@ public sealed record TuneResult(
 /// 3. raise the core offset step by step (= lower voltage at the capped clock, or higher clocks without a cap)
 ///    while a self-checking workload verifies every result and that real throughput does not drop,
 /// 4. step back by a safety margin from the last passing value and validate for several minutes.
+/// On AMD cards the voltage itself is lowered step by step instead (the max clock stays at stock, or a little
+/// lower for the efficient goal), see <see cref="TuneJournal.VoltageMode"/>.
 /// </summary>
 public sealed class AutoTuner
 {
@@ -100,7 +106,10 @@ public sealed class AutoTuner
 
     private async Task<TuneResult> RunCoreAsync(TuneJournal? resume, TuneGoal goal, CancellationToken ct)
     {
-        if (_backend.Limits.CoreOffsetMaxMHz <= 0)
+        var voltage = resume?.VoltageMode ?? _backend.Limits.UndervoltsByVoltage;
+        if (voltage && !_backend.Limits.UndervoltsByVoltage)
+            return Fail(L.T("Sürücü bu kartta voltaj ayarına izin vermiyor, bu yüzden undervolt yapılamıyor. Sürücüyü güncellemeyi dene."));
+        if (!voltage && _backend.Limits.CoreOffsetMaxMHz <= 0)
             return Fail(L.T("Sürücü bu kartta çekirdek offset ayarına izin vermiyor, bu yüzden undervolt yapılamıyor. Sürücüyü güncellemeyi dene."));
 
         _backend.ResetToStock();
@@ -125,26 +134,37 @@ public sealed class AutoTuner
             var boost = Math.Max(probe.HighClockMHz, baseline.HighClockMHz);
             if (boost <= 0) return Fail(L.T("Çekirdek hızı okunamadı."));
             var maxClock = RoundDown((int)(goal == TuneGoal.Efficient ? boost * _options.EfficientClockRatio : boost));
-            journal = new TuneJournal(maxClock, baseline.Result.Score, baseline.AvgPowerW, baseline.MaxTemperatureC, 0, null, DateTimeOffset.Now, goal);
+            // AMD keeps its own max clock (stock); the efficient goal moves it down by the same share instead.
+            var capOffset = voltage && goal == TuneGoal.Efficient
+                ? Math.Max(_backend.Limits.CoreOffsetMinMHz, -RoundDown((int)(boost * (1 - _options.EfficientClockRatio))))
+                : 0;
+            journal = new TuneJournal(maxClock, baseline.Result.Score, baseline.AvgPowerW, baseline.MaxTemperatureC, 0, null, DateTimeOffset.Now, goal, voltage, capOffset);
             journal.Save(_dataDirectory);
         }
         else
         {
             journal = resume;
             if (resume.TestingOffsetMHz is { } crashed)
-                Report(TunePhase.Searching, L.F("Önceki test +{0} MHz'de çökmüştü; bu değer kararsız sayıldı.", crashed), 0.1);
+                Report(TunePhase.Searching, voltage
+                    ? L.F("Önceki test {0} değerinde çökmüştü; bu değer kararsız sayıldı.", journal.Label(crashed))
+                    : L.F("Önceki test +{0} MHz'de çökmüştü; bu değer kararsız sayıldı.", crashed), 0.1);
         }
 
         var lastStable = journal.LastStableOffsetMHz;
-        var limit = Math.Min(_backend.Limits.CoreOffsetMaxMHz, _options.MaxSearchOffsetMHz);
+        var stepSize = voltage ? _options.VoltageStepMv : _options.StepMHz;
+        var limit = voltage
+            ? Math.Min(-_backend.Limits.VoltageOffsetMinMv, _options.MaxSearchUndervoltMv)
+            : Math.Min(_backend.Limits.CoreOffsetMaxMHz, _options.MaxSearchOffsetMHz);
         // On resume after a crash, the offset that was being tested is the ceiling.
-        if (journal.TestingOffsetMHz is { } ceiling) limit = Math.Min(limit, ceiling - _options.StepMHz);
+        if (journal.TestingOffsetMHz is { } ceiling) limit = Math.Min(limit, ceiling - stepSize);
 
-        for (var offset = lastStable + _options.StepMHz; offset <= limit; offset += _options.StepMHz)
+        for (var offset = lastStable + stepSize; offset <= limit; offset += stepSize)
         {
             ct.ThrowIfCancellationRequested();
             var fraction = 0.1 + 0.65 * offset / Math.Max(1, limit);
-            Report(TunePhase.Searching, L.F("+{0} MHz deneniyor (son sağlam: +{1})…", offset, lastStable), fraction, offset);
+            Report(TunePhase.Searching, voltage
+                ? L.F("{0} deneniyor (son sağlam: {1})…", journal.Label(offset), journal.Label(lastStable))
+                : L.F("+{0} MHz deneniyor (son sağlam: +{1})…", offset, lastStable), fraction, offset);
 
             journal = journal with { LastStableOffsetMHz = lastStable, TestingOffsetMHz = offset };
             journal.Save(_dataDirectory);
@@ -152,7 +172,7 @@ public sealed class AutoTuner
             var step = await TryOffsetAsync(journal, offset, StressPattern.Mixed, _options.Step, ct);
             if (step is not null)
             {
-                Report(TunePhase.Searching, L.F("+{0} MHz geçemedi: {1}", offset, step), fraction, offset);
+                Report(TunePhase.Searching, L.F("{0} geçemedi: {1}", journal.Label(offset), step), fraction, offset);
                 break;
             }
             lastStable = offset;
@@ -161,13 +181,13 @@ public sealed class AutoTuner
         journal = journal with { LastStableOffsetMHz = lastStable, TestingOffsetMHz = null };
         journal.Save(_dataDirectory);
 
-        var candidate = RoundDown(lastStable - _options.SafetyMarginMHz);
+        var candidate = voltage ? lastStable - _options.VoltageSafetyMarginMv : RoundDown(lastStable - _options.SafetyMarginMHz);
         for (var attempt = 0; attempt < 3; attempt++)
         {
             if (candidate <= 0)
                 return Fail(L.T("Bu kartta güvenli bir undervolt payı bulunamadı. Sessiz modu (güç limiti) kullanmanı öneririm."));
 
-            Report(TunePhase.Validating, L.F("+{0} MHz {1:0} dakika doğrulanıyor…", candidate, _options.Validation.TotalMinutes), 0.8 + 0.06 * attempt, candidate);
+            Report(TunePhase.Validating, L.F("{0} {1:0} dakika doğrulanıyor…", journal.Label(candidate), _options.Validation.TotalMinutes), 0.8 + 0.06 * attempt, candidate);
             journal = journal with { TestingOffsetMHz = candidate };
             journal.Save(_dataDirectory);
 
@@ -175,11 +195,17 @@ public sealed class AutoTuner
             _backend.Apply(settings);
             var validation = await MeasureAsync(StressPattern.Mixed, _options.Validation, ct);
             var failure = Judge(validation, journal);
-            ReportStep(L.F("+{0} MHz (doğrulama)", candidate), failure, validation, journal.BaselineScore);
+            ReportStep(L.F("{0} (doğrulama)", journal.Label(candidate)), failure, validation, journal.BaselineScore);
             if (failure is null)
             {
                 TuneJournal.Delete(_dataDirectory);
-                var message = journal.Goal == TuneGoal.Performance
+                var message = voltage
+                    ? journal.Goal == TuneGoal.Performance
+                        ? L.F("Tatlı nokta: voltaj {0}, güç limiti {1}.", journal.Label(candidate), _backend.Limits.FormatPower(settings.PowerLimitW ?? _backend.Limits.PowerDefaultW))
+                        : journal.CapOffsetMHz != 0
+                            ? L.F("Tatlı nokta: voltaj {0}, çekirdek {1} MHz.", journal.Label(candidate), journal.CapOffsetMHz)
+                            : L.F("Tatlı nokta: voltaj {0}.", journal.Label(candidate))
+                    : journal.Goal == TuneGoal.Performance
                     ? L.F("Tatlı nokta: çekirdek +{0} MHz, güç limiti {1} W.", candidate, settings.PowerLimitW ?? _backend.Limits.PowerDefaultW)
                     : L.F("Tatlı nokta: max {0} MHz, çekirdek +{1} MHz.", journal.MaxClockMHz, candidate);
                 Report(TunePhase.Done, message, 1, candidate);
@@ -187,12 +213,12 @@ public sealed class AutoTuner
                     journal.BaselineScore, validation.Result.Score,
                     journal.BaselinePowerW, validation.AvgPowerW,
                     journal.BaselineTemperatureC, validation.MaxTemperatureC,
-                    lastStable, lastStable + _options.StepMHz > limit);
+                    lastStable, lastStable + stepSize > limit);
             }
 
             SafeReset();
             Report(TunePhase.Validating, L.F("Doğrulama geçemedi ({0}); bir adım geri gidiliyor.", failure), 0.8 + 0.06 * attempt, candidate);
-            candidate -= _options.StepMHz;
+            candidate -= stepSize;
         }
 
         return Fail(L.T("Doğrulama üç denemede de geçemedi. Varsayılan ayarlarda kalındı."));
@@ -206,7 +232,7 @@ public sealed class AutoTuner
             _backend.Apply(journal.Settings(offset, _backend.Limits.PowerMaxW));
             var measurement = await MeasureAsync(pattern, duration, ct);
             var failure = Judge(measurement, journal);
-            ReportStep($"+{offset} MHz", failure, measurement, journal.BaselineScore);
+            ReportStep(journal.Label(offset), failure, measurement, journal.BaselineScore);
             return failure;
         }
         finally
