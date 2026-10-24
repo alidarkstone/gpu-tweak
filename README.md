@@ -41,6 +41,10 @@ RivaTuner/Afterburner yeteneklerinde ama çok daha sade, kartına zarar vermemek
 
 Test sırasında bilgisayar kilitlenirse bir sonraki açılışta program stok ayarlarla başlar. "Kaldığı yerden devam" denince kilitlenen değer kararsız sayılır.
 
+## Bellek sıcaklığı (deneysel)
+
+GeForce kartlar bellek sıcaklığını NVIDIA'nın resmi arayüzü NVML'e vermez (`nvidia-smi` bile "N/A" gösterir). Tweakstone önce NVML'i dener. Değer gelmezse HWiNFO ve LibreHardwareMonitor'ün kullandığı belgelenmemiş NVAPI sensör çağrısıyla okur. Bu yol sadece okuma yapar, karta hiçbir şey yazmaz. Bellek sensörünün yeri LibreHardwareMonitor'den alındı: RTX 50'de 2, RTX 40'ta 7, daha eskilerde 9. Birden fazla NVIDIA kartı olan bilgisayarlarda, hangi kartın değeri olduğu ayırt edilemediği için kapalıdır. Değeri HWiNFO'daki "GPU Memory Junction Temperature" ile karşılaştırarak doğrulayabilirsin.
+
 ## Bellek OC
 
 Otomatik ayardaki **Bellek OC** hedefi, şu anki çekirdek ayarına dokunmadan bellek hızını artırır (yaklaşık 13 dakika):

@@ -98,9 +98,19 @@ public sealed class NvmlBackend : IGpuBackend
     private DateTime _lastMemoryTemperatureAt;
     /// <summary>The sensor sometimes gives no answer when the card idles; bridge short gaps with the last reading.</summary>
     private static readonly TimeSpan MemoryTemperatureHold = TimeSpan.FromSeconds(15);
+    private Lazy<NvApiThermal?>? _nvApiThermal;
 
-    /// <summary>VRAM temperature, when the card reports it. Asked once more only if the first answer was not "not supported".</summary>
+    /// <summary>
+    /// VRAM temperature. NVML first (official); GeForce cards answer "N/A" there, so then the experimental NVAPI reader.
+    /// </summary>
     private double? ReadMemoryTemperature()
+    {
+        if (ReadNvmlMemoryTemperature() is { } nvml) return nvml;
+        _nvApiThermal ??= new Lazy<NvApiThermal?>(() => NvApiThermal.TryCreate(Info.Name));
+        return _nvApiThermal.Value?.ReadMemoryTemperature();
+    }
+
+    private double? ReadNvmlMemoryTemperature()
     {
         if (_memoryTemperatureUnsupported && DateTime.UtcNow < _memoryTemperatureRetryAt) return null;
         try
