@@ -63,14 +63,14 @@ public sealed class D3D11StressTest : IStressTest
     /// single bad transfer is counted once and does not spread.
     /// </summary>
     private const string MemoryShader = """
-        cbuffer MemParams : register(b0) { uint Pass; uint Seed; uint Count4; uint Reserved; };
+        cbuffer MemParams : register(b0) { uint PassIndex; uint Seed; uint Count4; uint Reserved; };
         RWByteAddressBuffer Source : register(u0);
         RWByteAddressBuffer Target : register(u1);
         RWByteAddressBuffer Errors : register(u2);
 
-        uint Value(uint j, uint pass)
+        uint Value(uint j, uint passIndex)
         {
-            uint h = j * 0x9E3779B1u ^ (pass * 0x85EBCA77u + Seed);
+            uint h = j * 0x9E3779B1u ^ (passIndex * 0x85EBCA77u + Seed);
             h ^= h >> 15; h *= 0x2C1B3C6Du; h ^= h >> 12;
             return h;
         }
@@ -87,9 +87,9 @@ public sealed class D3D11StressTest : IStressTest
                 {
                     uint j = q * 4;
                     uint4 got = Source.Load4(q * 16);
-                    uint4 want = uint4(Value(j, Pass), Value(j + 1, Pass), Value(j + 2, Pass), Value(j + 3, Pass));
+                    uint4 want = uint4(Value(j, PassIndex), Value(j + 1, PassIndex), Value(j + 2, PassIndex), Value(j + 3, PassIndex));
                     bad += (got.x != want.x ? 1u : 0u) + (got.y != want.y ? 1u : 0u) + (got.z != want.z ? 1u : 0u) + (got.w != want.w ? 1u : 0u);
-                    Target.Store4(q * 16, uint4(Value(j, Pass + 1), Value(j + 1, Pass + 1), Value(j + 2, Pass + 1), Value(j + 3, Pass + 1)));
+                    Target.Store4(q * 16, uint4(Value(j, PassIndex + 1), Value(j + 1, PassIndex + 1), Value(j + 2, PassIndex + 1), Value(j + 3, PassIndex + 1)));
                 }
             }
             if (bad != 0) { uint ignored; Errors.InterlockedAdd(0, bad, ignored); }
@@ -98,12 +98,12 @@ public sealed class D3D11StressTest : IStressTest
 
     /// <summary>Same hash as the memory shader, used to write the starting buffer.</summary>
     private const string MemoryFillShader = """
-        cbuffer MemParams : register(b0) { uint Pass; uint Seed; uint Count4; uint Reserved; };
+        cbuffer MemParams : register(b0) { uint PassIndex; uint Seed; uint Count4; uint Reserved; };
         RWByteAddressBuffer Target : register(u1);
 
-        uint Value(uint j, uint pass)
+        uint Value(uint j, uint passIndex)
         {
-            uint h = j * 0x9E3779B1u ^ (pass * 0x85EBCA77u + Seed);
+            uint h = j * 0x9E3779B1u ^ (passIndex * 0x85EBCA77u + Seed);
             h ^= h >> 15; h *= 0x2C1B3C6Du; h ^= h >> 12;
             return h;
         }
@@ -118,7 +118,7 @@ public sealed class D3D11StressTest : IStressTest
                 if (q < Count4)
                 {
                     uint j = q * 4;
-                    Target.Store4(q * 16, uint4(Value(j, Pass), Value(j + 1, Pass), Value(j + 2, Pass), Value(j + 3, Pass)));
+                    Target.Store4(q * 16, uint4(Value(j, PassIndex), Value(j + 1, PassIndex), Value(j + 2, PassIndex), Value(j + 3, PassIndex)));
                 }
             }
         }
