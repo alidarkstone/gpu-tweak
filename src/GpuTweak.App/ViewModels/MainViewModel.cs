@@ -176,14 +176,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     // ---- Editor ----
     private int _coreOffset, _memoryOffset, _powerLimit, _maxClock, _fanPercent;
     private bool _useClockCap, _manualFan;
-    public int CoreOffset { get => _coreOffset; set => Set(ref _coreOffset, value); }
-    public int MemoryOffset { get => _memoryOffset; set => Set(ref _memoryOffset, value); }
-    public int PowerLimit { get => _powerLimit; set { if (Set(ref _powerLimit, value)) OnPropertyChanged(nameof(PowerPercentText)); } }
+    // Values can be typed in, so they are kept inside the card's limits here too (the backend clamps again on apply).
+    public int CoreOffset { get => _coreOffset; set => SetClamped(ref _coreOffset, value, Limits.CoreOffsetMinMHz, Limits.CoreOffsetMaxMHz); }
+    public int MemoryOffset { get => _memoryOffset; set => SetClamped(ref _memoryOffset, value, Limits.MemoryOffsetMinMHz, Limits.MemoryOffsetMaxMHz); }
+    public int PowerLimit { get => _powerLimit; set { if (SetClamped(ref _powerLimit, value, Limits.PowerMinW, Limits.PowerMaxW)) OnPropertyChanged(nameof(PowerPercentText)); } }
     public string PowerPercentText => Limits.PowerDefaultW > 0 ? $"%{100.0 * PowerLimit / Limits.PowerDefaultW:0}" : "";
     public bool UseClockCap { get => _useClockCap; set => Set(ref _useClockCap, value); }
-    public int MaxClock { get => _maxClock; set => Set(ref _maxClock, value); }
+    public int MaxClock { get => _maxClock; set => SetClamped(ref _maxClock, value, Limits.CoreClockMinMHz, Limits.CoreClockMaxMHz); }
     public bool ManualFan { get => _manualFan; set => Set(ref _manualFan, value); }
-    public int FanPercent { get => _fanPercent; set => Set(ref _fanPercent, value); }
+    public int FanPercent { get => _fanPercent; set => SetClamped(ref _fanPercent, value, Limits.FanMinPercent, Limits.FanMaxPercent); }
+
+    /// <summary>Like Set, but an out-of-range value is pulled back to the limit and the box shows the corrected number.</summary>
+    private bool SetClamped(ref int field, int value, int min, int max, [System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+    {
+        var clamped = max >= min ? Math.Clamp(value, min, max) : value;
+        if (Set(ref field, clamped, name)) return true;
+        if (clamped != value) OnPropertyChanged(name);
+        return false;
+    }
     public bool SupportsFanControl => Limits.SupportsFanControl;
     public bool SupportsOffsets => Limits.CoreOffsetMaxMHz > Limits.CoreOffsetMinMHz;
 
@@ -855,9 +865,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void UndoStabilityChange()
     {
         if (_stability.UndoLastAdjustment() is not { } undo) return;
-        StepDown(undo);
         Stability.LastChange = "";
-        Status = L.F("Önceki ayara dönüldü: çekirdek +{0} MHz, bellek +{1} MHz. Bu sorun ayarlara sayılmayacak.", undo.Settings.CoreOffsetMHz, undo.Settings.MemoryOffsetMHz);
+        if (undo.From != undo.Settings)
+        {
+            StepDown(undo);
+            Status = L.F("Önceki ayara dönüldü: çekirdek +{0} MHz, bellek +{1} MHz. Bu sorun ayarlara sayılmayacak.", undo.Settings.CoreOffsetMHz, undo.Settings.MemoryOffsetMHz);
+        }
+        else
+        {
+            // The user already changed the settings by hand; only the incident is dropped.
+            Status = L.T("Bu sorun artık ayarlara sayılmayacak. Ayarların değiştirilmedi.");
+        }
         StatusIsWarning = false;
         Stability.Update(_stability.State, _sessions.CurrentGame);
         UpdateCanMarkStable();

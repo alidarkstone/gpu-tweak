@@ -72,21 +72,36 @@ public sealed class StabilityTracker
         }
     }
 
+    /// <summary>The last automatic step-down that can still be taken back, if any.</summary>
+    public Adjustment? Undoable
+    {
+        get
+        {
+            lock (_gate)
+                return _state.LastAdjustment is { } last && _state.Incidents.Any(i => !i.Ignored) ? last : null;
+        }
+    }
+
     /// <summary>
     /// Takes back the last automatic step-down (the user says the problem was not the card's): the incident stops
-    /// counting and the returned adjustment leads back to the earlier settings. Null when there is nothing to undo.
+    /// counting and the tracked settings go back. Returns the step back to the earlier settings, or null when there is
+    /// nothing to undo. When the user has changed the settings by hand since, only the incident is dropped
+    /// (<see cref="Adjustment.From"/> and <see cref="Adjustment.Settings"/> are then the same).
     /// </summary>
     public Adjustment? UndoLastAdjustment()
     {
         lock (_gate)
         {
-            if (_state.LastAdjustment is not { } last || _state.TrackedSettings != last.Settings) return null;
+            if (_state.LastAdjustment is not { } last) return null;
             var incidents = new List<StabilityIncident>(_state.Incidents);
             var index = incidents.FindLastIndex(i => !i.Ignored);
-            if (index >= 0) incidents[index] = incidents[index] with { Ignored = true };
-            _state = _state with { Incidents = incidents, TrackedSettings = last.From, LastAdjustment = null };
+            if (index < 0) return null;
+            incidents[index] = incidents[index] with { Ignored = true };
+            var untouched = _state.TrackedSettings == last.Settings;
+            var back = untouched ? last.From : _state.TrackedSettings;
+            _state = _state with { Incidents = incidents, TrackedSettings = back, LastAdjustment = null };
             Save();
-            return new Adjustment(last.Settings, last.From, last.Description);
+            return new Adjustment(untouched ? last.Settings : back, back, last.Description);
         }
     }
 

@@ -198,6 +198,25 @@ public sealed class StabilityTests : IDisposable
     }
 
     [Fact]
+    public void UndoAfterHandEditOnlyDropsTheIncident()
+    {
+        var tracker = Tracker();
+        tracker.SettingsChanged(Uv);
+        _now = _now.AddMinutes(5);
+        _source.Events.Add(new(_now.AddMinutes(-1), IncidentKind.DriverReset, "nvlddmkm"));
+        tracker.Check();
+        var byHand = Uv with { CoreOffsetMHz = 120 };
+        tracker.SettingsChanged(byHand);
+
+        Assert.NotNull(tracker.Undoable);
+        var undo = tracker.UndoLastAdjustment()!;
+        Assert.Equal(undo.From, undo.Settings);
+        Assert.Equal(byHand, tracker.State.TrackedSettings);
+        Assert.True(Assert.Single(tracker.State.Incidents).Ignored);
+        Assert.Null(tracker.Undoable);
+    }
+
+    [Fact]
     public void StepDownFromOlderVersionCanBeUndone()
     {
         var stepped = Uv with { CoreOffsetMHz = 105 };

@@ -31,7 +31,7 @@ public sealed class StabilityViewModel : ObservableObject
         CleanTime = Format(state.CleanGameTime);
         CleanLevel = Math.Clamp(state.CleanGameTime / StabilityAdvisor.StableAfter, 0, 1);
         IncidentCount = state.Incidents.Count(i => !i.Ignored);
-        CanUndo = state.LastAdjustment is { } last && state.TrackedSettings == last.Settings;
+        CanUndo = state.LastAdjustment is not null && state.Incidents.Any(i => !i.Ignored);
         SessionCount = state.Sessions.Count;
         Recent = state.Incidents.AsEnumerable().Reverse().Take(3)
             .Select(i => new IncidentRow(i.Time.LocalDateTime.ToString("dd.MM HH:mm"), Describe(i)))

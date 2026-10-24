@@ -267,5 +267,7 @@
  "Bilgisayar beklenmedik şekilde yeniden başladı, ama o sırada ekran kartı boştaydı (oyun ya da yük yoktu). Ayarlarla ilgisi olmadığı için hiçbir şey değiştirilmedi.": "The PC restarted unexpectedly, but the graphics card was idle at the time (no game or load). It has nothing to do with the settings, so nothing was changed.",
  "Önceki ayara dönüldü: çekirdek +{0} MHz, bellek +{1} MHz. Bu sorun ayarlara sayılmayacak.": "Back to the previous settings: core +{0} MHz, memory +{1} MHz. This problem will not count against the settings.",
  "Sorun ayarlardan kaynaklanmadıysa (başka bir program, elektrik kesintisi) son düzeltmeyi geri alabilirsin.": "If the problem was not caused by the settings (another program, a power cut), you can undo the last correction.",
- "Son düzeltmeyi geri al": "Undo last correction"
+ "Son düzeltmeyi geri al": "Undo last correction",
+ "Bu sorun artık ayarlara sayılmayacak. Ayarların değiştirilmedi.": "This problem will no longer count against the settings. Your settings were not changed.",
+ "Tıkla, değeri yaz ve Enter'a bas": "Click, type the value and press Enter"
 }
