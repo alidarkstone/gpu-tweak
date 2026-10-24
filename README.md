@@ -41,9 +41,15 @@ RivaTuner/Afterburner yeteneklerinde ama çok daha sade, kartına zarar vermemek
 
 Test sırasında bilgisayar kilitlenirse bir sonraki açılışta program stok ayarlarla başlar. "Kaldığı yerden devam" denince kilitlenen değer kararsız sayılır.
 
-## Stres testi
+## Doğrulama testi
 
-**Stres testi** düğmesi, şu an karttaki ayarlarla 15 dakika tam yük uygular (FurMark gibi), ama her hesabın sonucunu da kontrol eder. İlk hesap hatasında, sürücü sıfırlanmasında veya 85°C'de durur. Sonunda süre, maksimum sıcaklık, ortalama güç ve hız, en düşük performans gösterilir. Özel ayarlar hata verirse kart hemen varsayılana döndürülür.
+**Doğrulama testi** düğmesi, şu an karttaki ayarları yaklaşık 32 dakika test eder (FurMark gibi), ama her hesabın sonucunu da kontrol eder. Üç bölümü var:
+
+1. **Sürekli yük** (15 dk): kart ısınır, en yüksek hızında çalışır.
+2. **Ani yük** (8 dk): kısa yük patlamaları ve boşluklar; oyun menüleri ve yükleme ekranlarındaki gibi hız ve akım sıçramaları.
+3. **Eğri taraması** (6 × 90 sn): kart 1200 MHz'den en yüksek hızına kadar farklı hızlarda tutulur. Çekirdek offset'i voltaj eğrisinin her noktasını düşürür, ama tam yük sadece en üst noktayı çalıştırır; bu bölüm alttaki noktaları da sınar.
+
+Hesap hatası veya sürücü sıfırlanması olursa çekirdek ayarı 30 MHz düşürülür ve aynı bölüm tekrarlanır (en fazla 4 kez). Test geçerse düşürülmüş ayar kalır ve onu kullanan profil de güncellenir. 85°C'de test durur. Dört düşürmeden sonra hâlâ hata varsa kart varsayılan ayarlara döner.
 
 ## Oyun kararlılığı
 
@@ -112,6 +118,8 @@ NVIDIA/AMD logoları ticari marka olduğu için exe içinde gelmez; widget'ta ma
 - [x] Oyun kararlılığı takibi (Windows olay kayıtları) ve otomatik geri çekme, silikon skoru
 - [x] GPU sıcaklığı Min / Ort / Maks
 - [x] Dil seçimi (Türkçe / English), üst köşedeki TR | EN düğmesi
+- [x] Voltaj eğrisinin alt noktalarını da sınayan doğrulama testi
+- [ ] Güvenli bellek overclock'u (bant genişliği ölçümüyle)
 - [ ] DX12 ışın izleme (DXR) stres testi
 - [ ] Fan eğrisi, sistem tepsisi
 - [ ] (Deneysel) V/F eğrisi editörü

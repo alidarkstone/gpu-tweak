@@ -396,7 +396,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
     private bool _isStressTest;
-    public string MonitorTitle => IsTuning && _isStressTest ? L.T("Stres testi çalışıyor") : IsTuning ? L.T("Otomatik ayar çalışıyor") : TuneResult is { Success: true } ? L.T("Otomatik ayar bitti") : L.T("Otomatik ayar");
+    public string MonitorTitle => IsTuning && _isStressTest ? L.T("Doğrulama testi çalışıyor") : IsTuning ? L.T("Otomatik ayar çalışıyor") : TuneResult is { Success: true } ? L.T("Otomatik ayar bitti") : L.T("Otomatik ayar");
 
     public ICommand StartTuneCommand { get; }
     public ICommand ResumeTuneCommand { get; }
@@ -889,22 +889,31 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         var summary = L.F("{0:0} dk · maks {1:0}° · ort. {2:0} W · ort. {3} MHz · en düşük performans %{4:0}",
             result.Elapsed.TotalMinutes, result.MaxTemperatureC, result.AvgPowerW, result.AvgCoreClockMHz, 100 * result.LowestRelativeScore);
-        if (result.Passed)
+        if (result.Passed && result.StepDowns > 0 && result.FinalSettings is { } final)
         {
-            TuneMessage = L.T("Stres testi geçti: hiç hata yok.") + " " + summary;
+            // Some point of the curve needed more voltage: keep the lowered offset, in the profile too.
+            var description = L.F("çekirdek +{0} → +{1} MHz", settings.CoreOffsetMHz, final.CoreOffsetMHz);
+            StepDown(new Adjustment(settings, final, description));
+            TuneMessage = L.F("Doğrulama testi geçti, ama önce hata buldu; ayar bir miktar düşürüldü: {0}.", description) + " " + summary;
+            Status = L.F("Ayar daha güvenli hale getirildi: {0}.", description);
+            StatusIsWarning = false;
+        }
+        else if (result.Passed)
+        {
+            TuneMessage = L.T("Doğrulama testi geçti: hiç hata yok.") + " " + summary;
             Status = null;
         }
         else if (result.Cancelled)
         {
-            TuneMessage = L.T("Stres testi durduruldu.") + " " + summary;
+            TuneMessage = L.T("Doğrulama testi durduruldu.") + " " + summary;
         }
         else
         {
-            TuneMessage = L.F("Stres testi geçemedi: {0}.", result.Failure) + " " + summary;
+            TuneMessage = L.F("Doğrulama testi geçemedi: {0}.", result.Failure) + " " + summary;
             if (!settings.IsStock)
             {
                 ResetToStock();
-                Status = L.T("Bu ayarlar stres testinde hata verdi, kart varsayılan ayarlara döndürüldü. Otomatik ayarı çalıştır ya da çekirdek offset'i düşür.");
+                Status = L.T("Bu ayarlar doğrulama testinde düşürülmelerine rağmen hata verdi, kart varsayılan ayarlara döndürüldü. Otomatik ayarı yeniden çalıştır.");
                 StatusIsWarning = true;
             }
             else

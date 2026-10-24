@@ -163,8 +163,8 @@
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="12,0,0,0">
                                         <Button Style="{StaticResource PillButton}" local:Loc.Content="Kaldığı yerden devam" Margin="0,0,8,0" Command="{Binding ResumeTuneCommand}"
                                                 Visibility="{Binding HasPendingJournal, Converter={StaticResource BoolToVisibility}}"/>
-                                        <Button Style="{StaticResource PillButton}" local:Loc.Content="Stres testi" Margin="0,0,8,0" Command="{Binding StartStressCommand}"
-                                                local:Loc.ToolTip="Şu anki ayarlarla 15 dakika tam yük. Her hesap kontrol edilir; ilk hatada durur."
+                                        <Button Style="{StaticResource PillButton}" local:Loc.Content="Doğrulama testi" Margin="0,0,8,0" Command="{Binding StartStressCommand}"
+                                                local:Loc.ToolTip="Şu anki ayarları yaklaşık 32 dakika test eder: sürekli yük, oyundaki gibi ani yük değişimleri ve voltaj eğrisinin alt noktaları. Her hesap kontrol edilir. Hata bulursa çekirdek ayarını 30 MHz düşürüp tekrar dener."
                                                 Visibility="{Binding IsTuning, Converter={x:Static local:Converters.FalseToVisible}}"/>
                                         <Button Style="{StaticResource PrimaryButton}" local:Loc.Content="Başlat" Command="{Binding StartTuneCommand}"
                                                 Visibility="{Binding IsTuning, Converter={x:Static local:Converters.FalseToVisible}}"/>
